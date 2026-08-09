@@ -301,6 +301,95 @@ function doGet(e) {
 }
 
 /**
+ * TỰ ĐỘNG GỬI CẬP NHẬT TỪ GOOGLE SHEETS VỀ WEBAPP CHO CÁC THIẾT BỊ
+ * 
+ * HƯỚNG DẪN BẬT TRIGGER TỰ ĐỘNG:
+ * 1. Trong giao diện Apps Script này, bấm vào biểu tượng "Đồng hồ" (Triggers/Bộ kích hoạt) ở cột bên trái.
+ * 2. Chọn "+ Thêm bộ kích hoạt" (+ Add Trigger).
+ * 3. Chọn hàm muốn chạy: "onSheetEditTrigger".
+ * 4. Chọn loại sự kiện: "Khi chỉnh sửa" (On edit) hoặc "Khi thay đổi" (On change).
+ * 5. Nhấn Lưu (Save) và cấp quyền truy cập.
+ * Khi bạn thêm/sửa bất kỳ dòng nào ở bất cứ Tab nào trên Google Sheets, dữ liệu sẽ ngay lập tức được gửi tới WebApp!
+ */
+function onSheetEditTrigger(e) {
+  try {
+    if (!e || !e.range) return;
+    var sheet = e.range.getSheet();
+    var tableName = sheet.getName();
+
+    var pkMap = {
+      'Setting': 'MaCauHinh',
+      'ThuongHieu': 'MaThuongHieu',
+      'NhomHang': 'MaNhomHang',
+      'SanPham': 'MaSP',
+      'KhoSerial': 'SoSerial',
+      'StockCards': 'MaTheKho',
+      'KhachHang': 'MaKH',
+      'NCC': 'MaNCC',
+      'DonHang': 'MaDH',
+      'ChiTietDonHang': 'MaChiTietDH',
+      'NhapHang': 'MaNH',
+      'ChiTietNhapHang': 'MaChiTietNH',
+      'NguoiDung': 'MaUID'
+    };
+
+    if (!pkMap[tableName]) return; // Không thuộc 13 bảng quản lý
+
+    var row = e.range.getRow();
+    if (row < 2) return; // Bỏ qua dòng tiêu đề
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var settingSheet = ss.getSheetByName('Setting');
+    var webappDomain = '';
+
+    if (settingSheet) {
+      var sData = settingSheet.getDataRange().getValues();
+      for (var i = 1; i < sData.length; i++) {
+        var key = String(sData[i][0] || '').trim();
+        if (key === 'WEBAPP_DOMAIN' || key === 'WEBHOOK_URL') {
+          var val = String(sData[i][2] || '').trim();
+          if (val.startsWith('http') && !val.includes('script.google.com')) {
+            webappDomain = val;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!webappDomain) return;
+
+    var lastCol = sheet.getLastColumn();
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
+
+    var itemObj = {};
+    for (var c = 0; c < headers.length; c++) {
+      if (headers[c]) {
+        itemObj[headers[c]] = rowValues[c];
+      }
+    }
+
+    var cleanDomain = webappDomain;
+    if (cleanDomain.charAt(cleanDomain.length - 1) === '/') {
+      cleanDomain = cleanDomain.substring(0, cleanDomain.length - 1);
+    }
+    var targetUrl = cleanDomain + '/api/sheets/webhook-update';
+    UrlFetchApp.fetch(targetUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        action: 'row_updated',
+        tableName: tableName,
+        item: itemObj
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (err) {
+    Logger.log('Lỗi onSheetEditTrigger: ' + err.toString());
+  }
+}
+
+/**
  * Tự động tạo Menu tùy chỉnh trên thanh công cụ của Google Sheets
  */
 function onOpen() {
@@ -573,3 +662,4 @@ export async function pullDataFromGoogleSheets(
     };
   }
 }
+

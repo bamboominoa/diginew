@@ -47,7 +47,7 @@ export const SerialManagementView: React.FC<SerialManagementViewProps> = ({
     if (brandFilter !== 'all' && sp.MaThuongHieu !== brandFilter) return false;
 
     const query = (searchTerm || '').toLowerCase();
-    const matchSerial = (s.SoSerial || '').toLowerCase().includes(query);
+    const matchSerial = String(s.SoSerial || '').toLowerCase().includes(query);
     const matchSpName = (sp.TenSanPham || '').toLowerCase().includes(query);
     const matchSpCode = (sp.MaSP || '').toLowerCase().includes(query);
     const matchNCC = (s.NCC || '').toLowerCase().includes(query);

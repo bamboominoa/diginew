@@ -61,11 +61,54 @@ export default function App() {
       setTimeout(() => setSyncToast(null), 3500);
     };
 
+    const handleSheetsPulled = (e: Event) => {
+      const customEv = e as CustomEvent;
+      const time = customEv.detail?.timestamp || new Date().toLocaleTimeString('vi-VN');
+      const newCount = customEv.detail?.newCount || 0;
+      const updatedCount = customEv.detail?.updatedCount || 0;
+      const parts = [];
+      if (newCount > 0) parts.push(`${newCount} hàng mới`);
+      if (updatedCount > 0) parts.push(`${updatedCount} hàng chỉnh sửa`);
+      
+      setSyncToast(`📥 Đã tự động cập nhật ${parts.join(' & ')} từ Google Sheets vào WebApp! (${time})`);
+      setTimeout(() => setSyncToast(null), 4000);
+    };
+
     window.addEventListener('google-sheets-synced', handleSynced);
     window.addEventListener('db-remote-updated', handleRemoteUpdated);
+    window.addEventListener('google-sheets-pulled', handleSheetsPulled);
+
+    // Connect to Real-time SSE Stream for Instant Google Sheets Row Edits across all devices
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/sheets/events');
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload && payload.tableName && payload.item) {
+            db.mergeFromGoogleSheets({
+              [payload.tableName]: [payload.item],
+            });
+            const time = new Date().toLocaleTimeString('vi-VN');
+            const itemKey = payload.item.TenSP || payload.item.MaSP || payload.item.MaDH || payload.item.MaKH || payload.item.MaCauHinh || payload.tableName;
+            setSyncToast(`⚡ Google Sheets vừa sửa/thêm dòng [${itemKey}] ở Tab ${payload.tableName} (${time})`);
+            setTimeout(() => setSyncToast(null), 4000);
+          }
+        } catch (err) {
+          console.error('Lỗi nhận dữ liệu SSE Google Sheets:', err);
+        }
+      };
+    } catch (e) {
+      console.warn('SSE EventSource không hỗ trợ hoặc lỗi kết nối');
+    }
+
     return () => {
       window.removeEventListener('google-sheets-synced', handleSynced);
       window.removeEventListener('db-remote-updated', handleRemoteUpdated);
+      window.removeEventListener('google-sheets-pulled', handleSheetsPulled);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, []);
 

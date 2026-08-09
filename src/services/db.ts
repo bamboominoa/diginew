@@ -482,25 +482,30 @@ class DatabaseService {
     this.saveToStorage();
   }
 
-  // --- 13. Import/Merge data from Google Sheets ---
-  public mergeFromGoogleSheets(remoteData: Partial<DatabaseSchema>): void {
-    if (!remoteData || typeof remoteData !== 'object') return;
+  // --- 13. Import/Merge data from Google Sheets (Incremental Upsert) ---
+  public mergeFromGoogleSheets(remoteData: Partial<DatabaseSchema>): { newCount: number; updatedCount: number } {
+    let totalNew = 0;
+    let totalUpdated = 0;
 
-    const keys: (keyof DatabaseSchema)[] = [
-      'Setting',
-      'ThuongHieu',
-      'NhomHang',
-      'SanPham',
-      'KhoSerial',
-      'StockCards',
-      'KhachHang',
-      'NCC',
-      'DonHang',
-      'ChiTietDonHang',
-      'NhapHang',
-      'ChiTietNhapHang',
-      'NguoiDung',
-    ];
+    if (!remoteData || typeof remoteData !== 'object') {
+      return { newCount: 0, updatedCount: 0 };
+    }
+
+    const pkMap: Record<keyof DatabaseSchema, string> = {
+      Setting: 'MaCauHinh',
+      ThuongHieu: 'MaThuongHieu',
+      NhomHang: 'MaNhomHang',
+      SanPham: 'MaSP',
+      KhoSerial: 'SoSerial',
+      StockCards: 'MaTheKho',
+      KhachHang: 'MaKH',
+      NCC: 'MaNCC',
+      DonHang: 'MaDH',
+      ChiTietDonHang: 'MaChiTietDH',
+      NhapHang: 'MaNH',
+      ChiTietNhapHang: 'MaChiTietNH',
+      NguoiDung: 'MaUID',
+    };
 
     const normalizeArrayField = (val: any): string[] => {
       if (!val) return [];
@@ -520,45 +525,81 @@ class DatabaseService {
       return [String(val)];
     };
 
+    const keys = Object.keys(pkMap) as (keyof DatabaseSchema)[];
+
     keys.forEach((key) => {
       const remoteItems = remoteData[key];
-      if (Array.isArray(remoteItems) && remoteItems.length > 0) {
-        if (key === 'StockCards') {
-          remoteItems.forEach((item: any) => {
-            if (item && item.SoSerial) {
-              item.SoSerial = normalizeArrayField(item.SoSerial);
-            }
-          });
-        } else if (key === 'ChiTietDonHang') {
-          remoteItems.forEach((item: any) => {
-            if (item && item.SoSerial) {
-              item.SoSerial = normalizeArrayField(item.SoSerial);
-            }
-          });
-        } else if (key === 'ChiTietNhapHang') {
-          remoteItems.forEach((item: any) => {
-            if (item && item.SoSerialNhap) {
-              item.SoSerialNhap = normalizeArrayField(item.SoSerialNhap);
-            }
-          });
+      if (!Array.isArray(remoteItems) || remoteItems.length === 0) return;
+
+      const pkField = pkMap[key];
+      const localArray = (this.data[key] || []) as any[];
+
+      remoteItems.forEach((rItem: any) => {
+        if (!rItem) return;
+
+        // Clean & normalize fields
+        if (key === 'KhoSerial' && rItem.SoSerial !== undefined && rItem.SoSerial !== null) {
+          rItem.SoSerial = String(rItem.SoSerial);
+        } else if (key === 'StockCards' && rItem.SoSerial) {
+          rItem.SoSerial = normalizeArrayField(rItem.SoSerial);
+        } else if (key === 'ChiTietDonHang' && rItem.SoSerial) {
+          rItem.SoSerial = normalizeArrayField(rItem.SoSerial);
+        } else if (key === 'ChiTietNhapHang' && rItem.SoSerialNhap) {
+          rItem.SoSerialNhap = normalizeArrayField(rItem.SoSerialNhap);
         } else if (key === 'Setting') {
-          remoteItems.forEach((item: any) => {
-            if (item) {
-              item.GiaTri = String(item.GiaTri ?? '');
-            }
-          });
+          rItem.GiaTri = String(rItem.GiaTri ?? '');
         }
-        // Replace local array with imported Google Sheets array
-        (this.data[key] as any) = remoteItems;
-      }
+
+        // Numeric conversions if remote item values came as strings
+        if (rItem.GiaBan !== undefined && typeof rItem.GiaBan === 'string') rItem.GiaBan = Number(rItem.GiaBan) || 0;
+        if (rItem.GiaNhap !== undefined && typeof rItem.GiaNhap === 'string') rItem.GiaNhap = Number(rItem.GiaNhap) || 0;
+        if (rItem.SoLuong !== undefined && typeof rItem.SoLuong === 'string') rItem.SoLuong = Number(rItem.SoLuong) || 0;
+        if (rItem.ThanhTien !== undefined && typeof rItem.ThanhTien === 'string') rItem.ThanhTien = Number(rItem.ThanhTien) || 0;
+        if (rItem.TongTienHang !== undefined && typeof rItem.TongTienHang === 'string') rItem.TongTienHang = Number(rItem.TongTienHang) || 0;
+        if (rItem.KhachPhaiTra !== undefined && typeof rItem.KhachPhaiTra === 'string') rItem.KhachPhaiTra = Number(rItem.KhachPhaiTra) || 0;
+        if (rItem.KhachThanhToan !== undefined && typeof rItem.KhachThanhToan === 'string') rItem.KhachThanhToan = Number(rItem.KhachThanhToan) || 0;
+
+        // Key identification
+        let itemPk = rItem[pkField];
+        if (itemPk === undefined && key === 'NguoiDung') {
+          itemPk = rItem.MaNguoiDung || rItem.MaUID;
+          rItem.MaUID = itemPk;
+        }
+
+        if (itemPk === undefined || itemPk === null || itemPk === '') return; // invalid row without PK
+
+        const strPk = String(itemPk).trim();
+        const existingIdx = localArray.findIndex((lItem) => {
+          const lPk = lItem[pkField] ?? (key === 'NguoiDung' ? lItem.MaUID : undefined);
+          return lPk !== undefined && lPk !== null && String(lPk).trim() === strPk;
+        });
+
+        if (existingIdx >= 0) {
+          // Merge existing row with remote row updates
+          const oldJson = JSON.stringify(localArray[existingIdx]);
+          localArray[existingIdx] = { ...localArray[existingIdx], ...rItem };
+          const newJson = JSON.stringify(localArray[existingIdx]);
+          if (oldJson !== newJson) {
+            totalUpdated++;
+          }
+        } else {
+          // New row added in Google Sheets!
+          localArray.push(rItem);
+          totalNew++;
+        }
+      });
     });
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-    setPreviousSnapshot(this.data);
-    this.notifyListeners();
-    if (this.broadcastChannel) {
-      this.broadcastChannel.postMessage({ type: 'DB_MUTATED', timestamp: Date.now() });
+    if (totalNew > 0 || totalUpdated > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      setPreviousSnapshot(this.data);
+      this.notifyListeners();
+      if (this.broadcastChannel) {
+        this.broadcastChannel.postMessage({ type: 'DB_MUTATED', timestamp: Date.now() });
+      }
     }
+
+    return { newCount: totalNew, updatedCount: totalUpdated };
   }
 }
 

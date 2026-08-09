@@ -222,7 +222,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
     const matchCode = (p.MaSP || '').toLowerCase().includes(query);
 
     const matchSerial = (data.KhoSerial || []).some(
-      (s) => s.MaSP === p.MaSP && s.TrangThai === 'TrongKho' && (s.SoSerial || '').toLowerCase().includes(query)
+      (s) => s.MaSP === p.MaSP && s.TrangThai === 'TrongKho' && String(s.SoSerial || '').toLowerCase().includes(query)
     );
 
     return matchName || matchCode || matchSerial;
@@ -233,10 +233,10 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
     if (!customerSearchQuery.trim()) return true;
     const q = customerSearchQuery.toLowerCase();
     return (
-      kh.TenKhachHang.toLowerCase().includes(q) ||
-      kh.SDT1.includes(q) ||
-      kh.MaKH.toLowerCase().includes(q) ||
-      (kh.DiaChi && kh.DiaChi.toLowerCase().includes(q))
+      String(kh.TenKhachHang || '').toLowerCase().includes(q) ||
+      String(kh.SDT1 || '').includes(q) ||
+      String(kh.MaKH || '').toLowerCase().includes(q) ||
+      (kh.DiaChi && String(kh.DiaChi).toLowerCase().includes(q))
     );
   });
 

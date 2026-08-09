@@ -111,8 +111,15 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
 
     setIsPulling(false);
     if (res.success && res.data) {
-      db.mergeFromGoogleSheets(res.data);
-      setSyncMessage('✅ Đồng bộ & Cập nhật dữ liệu mới nhất từ Google Sheets về WebApp thành công!');
+      const { newCount, updatedCount } = db.mergeFromGoogleSheets(res.data);
+      if (newCount > 0 || updatedCount > 0) {
+        const detailParts = [];
+        if (newCount > 0) detailParts.push(`${newCount} dòng mới`);
+        if (updatedCount > 0) detailParts.push(`${updatedCount} dòng chỉnh sửa`);
+        setSyncMessage(`✅ Tự động cập nhật thành công ${detailParts.join(' & ')} từ Google Sheets về WebApp!`);
+      } else {
+        setSyncMessage('✅ Dữ liệu trên WebApp và Google Sheets đã đồng bộ khớp hoàn toàn (Không có dòng mới).');
+      }
     } else {
       setSyncMessage(`❌ Thất bại: ${res.message}`);
     }
@@ -394,8 +401,8 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
               <li>Mở tệp Google Sheets mới hoặc tệp có sẵn của bạn.</li>
               <li>Vào menu <strong>Tiện ích mở rộng (Extensions)</strong> &gt; <strong>Apps Script</strong>.</li>
               <li>Dán đoạn mã dưới đây vào file <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">Code.gs</code>.</li>
-              <li>Bấm <strong>Triển khai (Deploy)</strong> &gt; <strong>Triển khai dưới dạng ứng dụng web (Web App)</strong>.</li>
-              <li>Đặt quyền truy cập: <i>"Ai cũng có thể truy cập" (Anyone)</i>.</li>
+              <li>Bấm <strong>Triển khai (Deploy)</strong> &gt; <strong>Triển khai dưới dạng ứng dụng web (Web App)</strong> (Quyền: <i>Anyone</i>).</li>
+              <li><strong className="text-amber-600 dark:text-amber-400">⚡ Bật tự động đẩy từng dòng về WebApp:</strong> Ở bên trái chọn <strong>Bộ kích hoạt (Triggers ⏰)</strong> &gt; <strong>+ Thêm bộ kích hoạt</strong> &gt; Chọn hàm <code className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1 rounded">onSheetEditTrigger</code> &gt; Sự kiện: <strong>Khi chỉnh sửa (On edit)</strong>.</li>
             </ol>
 
             <div className="relative border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-950 text-slate-200 p-3 font-mono text-[11px] h-48 overflow-y-auto">

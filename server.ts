@@ -74,6 +74,57 @@ Trả lời ngắn gọn, chính xác bằng tiếng Việt, đưa ra lời khuy
     }
   });
 
+  // Real-time SSE Connections list for multi-device sync
+  let sseClients: express.Response[] = [];
+
+  // Webhook endpoint called by Google Apps Script when a row is edited on Google Sheets
+  app.post('/api/sheets/webhook-update', (req, res) => {
+    try {
+      const { tableName, item, action } = req.body || {};
+      if (!tableName || !item) {
+        return res.status(400).json({ error: 'Thiếu tableName hoặc item' });
+      }
+
+      const eventData = {
+        tableName,
+        item,
+        action: action || 'row_updated',
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(`📥 [Google Sheets Trigger] Dòng mới/chỉnh sửa tại tab "${tableName}":`, item);
+
+      // Broadcast event to all connected devices via SSE
+      const sseMsg = `data: ${JSON.stringify(eventData)}\n\n`;
+      sseClients.forEach((client) => {
+        try {
+          client.write(sseMsg);
+        } catch (e) {
+          // Client disconnected
+        }
+      });
+
+      res.json({ success: true, message: 'Đã nhận dữ liệu chỉnh sửa từ Sheets và phát tới các thiết bị.' });
+    } catch (err: any) {
+      console.error('Webhook Update Error:', err);
+      res.status(500).json({ error: err.message || 'Lỗi xử lý webhook' });
+    }
+  });
+
+  // Server-Sent Events endpoint for WebApp clients to receive instant row updates
+  app.get('/api/sheets/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    if (res.flushHeaders) res.flushHeaders();
+
+    sseClients.push(res);
+
+    req.on('close', () => {
+      sseClients = sseClients.filter((c) => c !== res);
+    });
+  });
+
   // Vite Development / Static Production serving
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');

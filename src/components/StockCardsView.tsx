@@ -41,7 +41,7 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
       (sc.MaChungTu || '').toLowerCase().includes(q) ||
       (sc.MaSP || '').toLowerCase().includes(q) ||
       (sp && (sp.TenSanPham || '').toLowerCase().includes(q)) ||
-      (sc.SoSerial && (Array.isArray(sc.SoSerial) ? sc.SoSerial : [sc.SoSerial]).some((s) => (s || '').toLowerCase().includes(q)))
+      (sc.SoSerial && (Array.isArray(sc.SoSerial) ? sc.SoSerial : [sc.SoSerial]).some((s) => String(s || '').toLowerCase().includes(q)))
     );
   });
 
