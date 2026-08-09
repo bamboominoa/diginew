@@ -21,6 +21,7 @@ interface TopHeaderProps {
   onOpenAiAssistant?: () => void;
   onQuickSerialSearch?: (query: string) => void;
   onSearchSubmit?: (query: string) => void;
+  onRefreshSheets?: () => void;
   onResetData?: () => void;
 }
 
@@ -34,6 +35,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenAiAssistant,
   onQuickSerialSearch,
   onSearchSubmit,
+  onRefreshSheets,
   onResetData,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,11 +111,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           <FileSpreadsheet className="w-4 h-4" />
         </button>
 
-        {/* Reset database button */}
+        {/* Refresh Google Sheets data button */}
         <button
-          onClick={() => onResetData && onResetData()}
-          title="Tải lại dữ liệu mẫu 12 bảng"
-          className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          onClick={() => {
+            if (onRefreshSheets) onRefreshSheets();
+            else if (onResetData) onResetData();
+          }}
+          title="Tải lại dữ liệu từ Google Sheets"
+          className="p-2 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
         </button>

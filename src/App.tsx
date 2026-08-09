@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DatabaseSchema, DonHang, ChiTietDonHang, NguoiDung } from './types';
 import { db } from './services/db';
-import { startAutoPullTimer } from './services/googleSheets';
+import { startAutoPullTimer, pullDataFromGoogleSheets } from './services/googleSheets';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { DashboardView } from './components/DashboardView';
@@ -135,6 +135,33 @@ export default function App() {
     setActiveTab('serials');
   };
 
+  // Manual refresh button handler: pull latest data directly from Google Sheets
+  const handleRefreshSheets = async () => {
+    setSyncToast('🔄 Đang tải dữ liệu mới từ Google Sheets...');
+    let webhookUrl = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
+    if (!webhookUrl) {
+      const settingObj = data.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
+      if (settingObj?.GiaTri) webhookUrl = String(settingObj.GiaTri).trim();
+    }
+    if (!webhookUrl || !webhookUrl.startsWith('http') || webhookUrl.includes('...')) {
+      setSyncToast('⚠️ Chưa cấu hình Webhook URL Google Sheets. Vui lòng vào Tab Google Sheets để nhập URL!');
+      setTimeout(() => setSyncToast(null), 4000);
+      return;
+    }
+    try {
+      const res = await pullDataFromGoogleSheets(webhookUrl);
+      if (res.success && res.data) {
+        const { newCount, updatedCount } = db.mergeFromGoogleSheets(res.data);
+        setSyncToast(`✅ Đã tải dữ liệu từ Google Sheets! (+${newCount} mới, ~${updatedCount} cập nhật)`);
+      } else {
+        setSyncToast(`⚠️ Google Sheets: ${res.message || 'Không có dữ liệu trả về'}`);
+      }
+    } catch (err: any) {
+      setSyncToast(`❌ Lỗi tải từ Google Sheets: ${err?.message || 'Không thể kết nối'}`);
+    }
+    setTimeout(() => setSyncToast(null), 4000);
+  };
+
   return (
     <div className="flex h-screen w-screen bg-[#F8FAFC] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Sidebar Navigation */}
@@ -151,7 +178,7 @@ export default function App() {
           allUsers={data.NguoiDung || []}
           onSearchSubmit={handleGlobalSearchSubmit}
           onOpenAiAssistant={() => setShowAiModal(true)}
-          onResetData={() => db.resetToSampleData()}
+          onRefreshSheets={handleRefreshSheets}
         />
 
         {/* Dynamic Main View */}
