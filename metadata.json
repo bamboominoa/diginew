@@ -1,0 +1,8 @@
+{
+  "name": "Remix Quản Lý Bán Hàng \u0026 Serial Inventory",
+  "description": "Hệ thống quản lý bán hàng, tồn kho serial/IMEI, bảo hành, khách hàng, công nợ và đồng bộ Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
