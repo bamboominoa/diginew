@@ -481,6 +481,42 @@ class DatabaseService {
     this.data.NguoiDung = this.data.NguoiDung.filter((x) => x.MaUID !== maUID);
     this.saveToStorage();
   }
+
+  // --- 13. Import/Merge data from Google Sheets ---
+  public mergeFromGoogleSheets(remoteData: Partial<DatabaseSchema>): void {
+    if (!remoteData || typeof remoteData !== 'object') return;
+
+    const keys: (keyof DatabaseSchema)[] = [
+      'Setting',
+      'ThuongHieu',
+      'NhomHang',
+      'SanPham',
+      'KhoSerial',
+      'StockCards',
+      'KhachHang',
+      'NCC',
+      'DonHang',
+      'ChiTietDonHang',
+      'NhapHang',
+      'ChiTietNhapHang',
+      'NguoiDung',
+    ];
+
+    keys.forEach((key) => {
+      const remoteItems = remoteData[key];
+      if (Array.isArray(remoteItems) && remoteItems.length > 0) {
+        // Replace local array with imported Google Sheets array
+        (this.data[key] as any) = remoteItems;
+      }
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    setPreviousSnapshot(this.data);
+    this.notifyListeners();
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'DB_MUTATED', timestamp: Date.now() });
+    }
+  }
 }
 
 export const db = new DatabaseService();

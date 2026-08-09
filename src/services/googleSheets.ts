@@ -241,7 +241,63 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return ContentService.createTextOutput("POS Serial Google Sheets Integration API is Active!");
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var pkMap = {
+      'Setting': 'MaCauHinh',
+      'ThuongHieu': 'MaThuongHieu',
+      'NhomHang': 'MaNhomHang',
+      'SanPham': 'MaSP',
+      'KhoSerial': 'SoSerial',
+      'StockCards': 'MaTheKho',
+      'DonHang': 'MaDH',
+      'ChiTietDonHang': 'MaChiTietDH',
+      'NhapHang': 'MaNH',
+      'ChiTietNhapHang': 'MaChiTietNH',
+      'KhachHang': 'MaKH',
+      'NCC': 'MaNCC',
+      'NguoiDung': 'MaNguoiDung'
+    };
+
+    var result = {};
+    var tables = Object.keys(pkMap);
+
+    tables.forEach(function(tableName) {
+      var sheet = ss.getSheetByName(tableName);
+      if (sheet) {
+        var values = sheet.getDataRange().getValues();
+        if (values.length > 1) {
+          var headers = values[0];
+          var rows = [];
+          for (var i = 1; i < values.length; i++) {
+            var rowObj = {};
+            var hasData = false;
+            for (var j = 0; j < headers.length; j++) {
+              if (headers[j]) {
+                var val = values[i][j];
+                rowObj[headers[j]] = val;
+                if (val !== "" && val !== null && val !== undefined) hasData = true;
+              }
+            }
+            if (hasData) {
+              rows.push(rowObj);
+            }
+          }
+          result[tableName] = rows;
+        } else {
+          result[tableName] = [];
+        }
+      } else {
+        result[tableName] = [];
+      }
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: result, timestamp: new Date().toISOString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 /**
@@ -475,4 +531,45 @@ export function autoSyncToGoogleSheets(dbData: DatabaseSchema): void {
       console.error('❌ [Incremental AutoSync] Lỗi tự động đồng bộ:', err);
     }
   }, 400);
+}
+
+/**
+ * Pulls current data from Google Sheets via GET webhook request
+ */
+export async function pullDataFromGoogleSheets(
+  webhookUrl: string
+): Promise<{ success: boolean; data?: Partial<DatabaseSchema>; message: string }> {
+  if (!webhookUrl || !webhookUrl.trim() || !webhookUrl.startsWith('http')) {
+    return { success: false, message: 'Chưa cấu hình URL Google Sheets Webhook hợp lệ!' };
+  }
+
+  try {
+    const response = await fetch(webhookUrl.trim(), {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      return { success: false, message: `Lỗi kết nối HTTP (${response.status})` };
+    }
+
+    const resJson = await response.json();
+    if (resJson && resJson.status === 'success' && resJson.data) {
+      return {
+        success: true,
+        data: resJson.data,
+        message: 'Lấy dữ liệu từ Google Sheets về WebApp thành công!',
+      };
+    } else {
+      return {
+        success: false,
+        message: resJson?.error || resJson?.message || 'Không thể lấy dữ liệu từ Google Sheets. Bạn đã Cập nhật triển khai Apps Script mới nhất chưa?',
+      };
+    }
+  } catch (err: any) {
+    console.error('Failed to pull data from Google Sheets:', err);
+    return {
+      success: false,
+      message: 'Không thể kết nối đến Webhook Google Sheets: ' + (err?.message || 'Lỗi mạng hoặc CORS'),
+    };
+  }
 }

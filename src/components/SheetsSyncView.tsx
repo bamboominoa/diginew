@@ -3,6 +3,7 @@ import { DatabaseSchema, Setting } from '../types';
 import {
   generateGoogleAppsScript,
   syncDataToGoogleSheetsWebhook,
+  pullDataFromGoogleSheets,
   downloadAllDatabaseCSV,
 } from '../services/googleSheets';
 import { db } from '../services/db';
@@ -35,6 +36,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
   );
   const [isCopied, setIsCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isPulling, setIsPulling] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // Setting table management state
@@ -91,6 +93,26 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
     setIsSyncing(false);
     if (res.success) {
       setSyncMessage('✅ Đồng bộ toàn bộ dữ liệu thành công lên Google Sheets!');
+    } else {
+      setSyncMessage(`❌ Thất bại: ${res.message}`);
+    }
+  };
+
+  const handleTriggerPullNow = async () => {
+    if (!webhookUrl.trim()) {
+      alert('Vui lòng nhập Webhook URL triển khai từ Google Apps Script!');
+      return;
+    }
+
+    setIsPulling(true);
+    setSyncMessage('Đang kết nối tới Google Sheets để tải dữ liệu 13 bảng về WebApp...');
+
+    const res = await pullDataFromGoogleSheets(webhookUrl.trim());
+
+    setIsPulling(false);
+    if (res.success && res.data) {
+      db.mergeFromGoogleSheets(res.data);
+      setSyncMessage('✅ Đồng bộ & Cập nhật dữ liệu mới nhất từ Google Sheets về WebApp thành công!');
     } else {
       setSyncMessage(`❌ Thất bại: ${res.message}`);
     }
@@ -199,14 +221,25 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
           </p>
         </div>
 
-        <button
-          onClick={handleTriggerPushNow}
-          disabled={isSyncing}
-          className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 flex items-center gap-2 text-xs shrink-0 transition-all cursor-pointer"
-        >
-          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          <span>{isSyncing ? 'Đang Đẩy Dữ Liệu...' : 'Đẩy Dữ Liệu Ngay Bây Giờ'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <button
+            onClick={handleTriggerPushNow}
+            disabled={isSyncing || isPulling}
+            className="px-5 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Đang Đẩy Dữ Liệu...' : 'Đẩy Lên Sheets'}</span>
+          </button>
+
+          <button
+            onClick={handleTriggerPullNow}
+            disabled={isSyncing || isPulling}
+            className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+          >
+            <Download className={`w-4 h-4 ${isPulling ? 'animate-bounce' : ''}`} />
+            <span>{isPulling ? 'Đang Tải Dữ Liệu...' : 'Kéo Từ Sheets Về Web'}</span>
+          </button>
+        </div>
       </div>
 
       {syncMessage && (
