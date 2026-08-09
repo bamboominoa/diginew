@@ -7,6 +7,25 @@ interface StockCardsViewProps {
   data: DatabaseSchema;
 }
 
+const getSerialsString = (serials: any): string => {
+  if (!serials) return '';
+  if (Array.isArray(serials)) {
+    return serials.filter((s) => s && s !== 'Không quản lý serial' && s !== 'Kông quản lý serial').join(', ');
+  }
+  if (typeof serials === 'string') {
+    if (serials.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(serials);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((s) => s && s !== 'Không quản lý serial' && s !== 'Kông quản lý serial').join(', ');
+        }
+      } catch {}
+    }
+    return serials === 'Không quản lý serial' || serials === 'Kông quản lý serial' ? '' : serials;
+  }
+  return String(serials);
+};
+
 export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -152,13 +171,16 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
                     </td>
 
                     <td className="px-5 py-3 font-mono text-[11px]">
-                      {sc.SoSerial && sc.SoSerial.length > 0 ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                          {sc.SoSerial.join(', ')}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 italic">Không có Serial</span>
-                      )}
+                      {(() => {
+                        const serialStr = getSerialsString(sc.SoSerial);
+                        return serialStr ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            {serialStr}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">Không có Serial</span>
+                        );
+                      })()}
                     </td>
 
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{sc.NguoiThucHien}</td>

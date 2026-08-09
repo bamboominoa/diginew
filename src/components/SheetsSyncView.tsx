@@ -309,7 +309,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
                           className="w-full px-2.5 py-1 border border-sky-400 rounded-lg text-xs font-mono bg-white dark:bg-slate-800 focus:outline-none"
                         />
                       ) : (
-                        <div className="truncate text-ellipsis" title={st.GiaTri}>
+                        <div className="truncate text-ellipsis" title={String(st.GiaTri ?? '')}>
                           {st.GiaTri || '—'}
                         </div>
                       )}

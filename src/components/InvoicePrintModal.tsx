@@ -90,9 +90,9 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                   <tr key={i}>
                     <td className="py-2 pr-1">
                       <span className="font-semibold block text-slate-800">{d.MaSP}</span>
-                      {d.SoSerial && d.SoSerial.length > 0 && (
+                      {d.SoSerial && (Array.isArray(d.SoSerial) ? d.SoSerial.length > 0 : Boolean(d.SoSerial)) && (
                         <span className="text-[9px] font-mono text-emerald-600 block">
-                          S/N: {d.SoSerial.join(', ')}
+                          S/N: {Array.isArray(d.SoSerial) ? d.SoSerial.join(', ') : String(d.SoSerial)}
                         </span>
                       )}
                     </td>

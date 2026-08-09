@@ -477,8 +477,8 @@ export function autoSyncToGoogleSheets(dbData: DatabaseSchema): void {
   let webhookUrl = localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '';
   if (!webhookUrl) {
     const settingObj = dbData.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
-    if (settingObj && settingObj.GiaTri && settingObj.GiaTri.startsWith('http')) {
-      webhookUrl = settingObj.GiaTri;
+    if (settingObj && settingObj.GiaTri && String(settingObj.GiaTri).startsWith('http')) {
+      webhookUrl = String(settingObj.GiaTri);
     }
   }
 
@@ -490,7 +490,7 @@ export function autoSyncToGoogleSheets(dbData: DatabaseSchema): void {
 
   // Check if AUTO_SYNC is disabled in Setting
   const autoSyncSetting = dbData.Setting?.find((s) => s.MaCauHinh === 'AUTO_SYNC');
-  if (autoSyncSetting && autoSyncSetting.GiaTri.toUpperCase() === 'FALSE') {
+  if (autoSyncSetting && String(autoSyncSetting.GiaTri ?? '').toUpperCase() === 'FALSE') {
     previousDbSnapshot = JSON.parse(JSON.stringify(dbData));
     return;
   }

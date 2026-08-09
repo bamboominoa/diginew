@@ -1191,9 +1191,9 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
                     <div className="text-[11px] text-slate-500">
                       Số lượng: {d.SoLuong} | Đơn giá nhập: {formatVND(d.GiaNhap)}
                     </div>
-                    {d.SoSerialNhap && d.SoSerialNhap.length > 0 && (
+                    {d.SoSerialNhap && (Array.isArray(d.SoSerialNhap) ? d.SoSerialNhap.length > 0 : Boolean(d.SoSerialNhap)) && (
                       <div className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                        Serials: {d.SoSerialNhap.join(', ')}
+                        Serials: {Array.isArray(d.SoSerialNhap) ? d.SoSerialNhap.join(', ') : String(d.SoSerialNhap)}
                       </div>
                     )}
                   </div>

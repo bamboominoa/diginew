@@ -502,9 +502,52 @@ class DatabaseService {
       'NguoiDung',
     ];
 
+    const normalizeArrayField = (val: any): string[] => {
+      if (!val) return [];
+      if (Array.isArray(val)) return val.map(String);
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (trimmed.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) return parsed.map(String);
+          } catch {}
+        }
+        if (trimmed.includes(';')) return trimmed.split(';').map((s) => s.trim()).filter(Boolean);
+        if (trimmed.includes(',')) return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+        return [trimmed];
+      }
+      return [String(val)];
+    };
+
     keys.forEach((key) => {
       const remoteItems = remoteData[key];
       if (Array.isArray(remoteItems) && remoteItems.length > 0) {
+        if (key === 'StockCards') {
+          remoteItems.forEach((item: any) => {
+            if (item && item.SoSerial) {
+              item.SoSerial = normalizeArrayField(item.SoSerial);
+            }
+          });
+        } else if (key === 'ChiTietDonHang') {
+          remoteItems.forEach((item: any) => {
+            if (item && item.SoSerial) {
+              item.SoSerial = normalizeArrayField(item.SoSerial);
+            }
+          });
+        } else if (key === 'ChiTietNhapHang') {
+          remoteItems.forEach((item: any) => {
+            if (item && item.SoSerialNhap) {
+              item.SoSerialNhap = normalizeArrayField(item.SoSerialNhap);
+            }
+          });
+        } else if (key === 'Setting') {
+          remoteItems.forEach((item: any) => {
+            if (item) {
+              item.GiaTri = String(item.GiaTri ?? '');
+            }
+          });
+        }
         // Replace local array with imported Google Sheets array
         (this.data[key] as any) = remoteItems;
       }
