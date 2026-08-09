@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DatabaseSchema, KhachHang } from '../types';
 import { db } from '../services/db';
+import { formatDateTime, sortByDateDescending, getFormattedNow } from '../utils/dateUtils';
 import {
   Users,
   Search,
@@ -91,7 +92,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ data }) => {
       Local: localCity,
       TongNoHienTai: editingCustomer ? editingCustomer.TongNoHienTai : 0,
       TongChiTieu: editingCustomer ? editingCustomer.TongChiTieu : 0,
-      NgayTao: editingCustomer ? editingCustomer.NgayTao : new Date().toISOString().substring(0, 10),
+      NgayTao: editingCustomer ? editingCustomer.NgayTao : getFormattedNow(),
     };
 
     if (editingCustomer) {
@@ -225,7 +226,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ data }) => {
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {filteredCustomers.map((c) => (
+              {sortByDateDescending(filteredCustomers, (c) => c.NgayTao || c.NgayMuaGanNhat).map((c) => (
                 <tr
                   key={c.MaKH}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"

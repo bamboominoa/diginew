@@ -3,6 +3,7 @@ import { DatabaseSchema, DonHang, ChiTietDonHang } from '../types';
 import { Search, Printer, Download, Eye, DollarSign, Calendar } from 'lucide-react';
 import { InvoicePrintModal } from './InvoicePrintModal';
 import { convertTableToCSV, downloadCSV } from '../services/googleSheets';
+import { formatDateTime, sortByDateDescending } from '../utils/dateUtils';
 
 interface SalesInvoicesViewProps {
   data: DatabaseSchema;
@@ -89,7 +90,7 @@ export const SalesInvoicesView: React.FC<SalesInvoicesViewProps> = ({ data }) =>
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {filteredOrders.map((dh, idx) => {
+              {sortByDateDescending(filteredOrders, (dh) => dh.NgayBan).map((dh, idx) => {
                 const cust = data.KhachHang.find((c) => c.MaKH === dh.MaKH);
 
                 return (
@@ -101,7 +102,9 @@ export const SalesInvoicesView: React.FC<SalesInvoicesViewProps> = ({ data }) =>
                       {dh.MaDH}
                     </td>
 
-                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{dh.NgayBan}</td>
+                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400 font-medium">
+                      {formatDateTime(dh.NgayBan)}
+                    </td>
 
                     <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">
                       {cust ? cust.TenKhachHang : dh.MaKH}

@@ -9,6 +9,7 @@ import {
   HinhThucThanhToanType,
 } from '../types';
 import { db } from '../services/db';
+import { getFormattedNow, formatDateTime, sortByDateDescending } from '../utils/dateUtils';
 import {
   Search,
   ShoppingCart,
@@ -243,10 +244,10 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
   // Selected Customer details & recent orders
   const selectedCustomer = data.KhachHang.find((c) => c.MaKH === selectedCustomerId);
   const recentCustomerOrders = selectedCustomer
-    ? data.DonHang
-        .filter((o) => o.MaKH === selectedCustomer.MaKH)
-        .sort((a, b) => new Date(b.NgayBan).getTime() - new Date(a.NgayBan).getTime())
-        .slice(0, 3)
+    ? sortByDateDescending(
+        data.DonHang.filter((o) => o.MaKH === selectedCustomer.MaKH),
+        (o) => o.NgayBan
+      ).slice(0, 3)
     : [];
 
   // Handle adding product to cart
@@ -446,7 +447,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
       Local: 'TP. Hồ Chí Minh',
       TongNoHienTai: 0,
       TongChiTieu: 0,
-      NgayTao: new Date().toISOString().substring(0, 10),
+      NgayTao: getFormattedNow(),
     };
 
     db.addKhachHang(newCust);
@@ -502,7 +503,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
       new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14) +
       '-' +
       Math.floor(100 + Math.random() * 900);
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const nowStr = getFormattedNow();
 
     const newOrder: DonHang = {
       MaDH: orderId,
@@ -1137,19 +1138,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
                   {recentCustomerOrders.map((ord, idx) => {
                     const debtRemaining = ord.KhachPhaiTra - ord.KhachThanhToan;
                     const isDebt = debtRemaining > 0;
-                    let displayDate = '';
-                    if (ord.NgayBan) {
-                      const datePart = ord.NgayBan.split(' ')[0];
-                      const parts = datePart.split('-');
-                      if (parts.length === 3) {
-                        const day = parseInt(parts[2], 10);
-                        const month = parseInt(parts[1], 10);
-                        const year = parts[0];
-                        displayDate = `${day}/${month}/${year}`;
-                      } else {
-                        displayDate = ord.NgayBan;
-                      }
-                    }
+                    const displayDate = formatDateTime(ord.NgayBan);
 
                     return (
                       <div key={`${ord.MaDH}-${idx}`} className="flex items-center justify-between text-xs py-0.5">

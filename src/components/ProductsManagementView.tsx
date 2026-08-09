@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DatabaseSchema, SanPham, ThuongHieu, NhomHang } from '../types';
 import { db } from '../services/db';
+import { getFormattedNow, formatDateTime, sortByDateDescending } from '../utils/dateUtils';
 import {
   Package,
   Plus,
@@ -126,7 +127,7 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
       LoaiSanPham: formLoaiSanPham,
       TrangThaiKinhDoanh: formTrangThaiKinhDoanh,
       UrlHinhAnh: formUrlImage.trim(),
-      NgayTao: editingProduct ? editingProduct.NgayTao : new Date().toISOString().substring(0, 10),
+      NgayTao: editingProduct ? editingProduct.NgayTao : getFormattedNow(),
     };
 
     if (editingProduct) {
@@ -326,7 +327,7 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
               </thead>
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                {filteredProducts.map((p) => {
+                {sortByDateDescending(filteredProducts, (p) => p.NgayTao).map((p) => {
                   const nhom = data.NhomHang.find((n) => n.MaNhomHang === p.MaNhomHang);
                   const brand = data.ThuongHieu.find((b) => b.MaThuongHieu === p.MaThuongHieu);
                   const serialInStock = data.KhoSerial.filter(

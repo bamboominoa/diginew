@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DatabaseSchema, KhoSerial, TrangThaiSerial } from '../types';
 import { db } from '../services/db';
+import { formatDateTime, sortByDateDescending } from '../utils/dateUtils';
 import {
   Search,
   QrCode,
@@ -251,7 +252,7 @@ export const SerialManagementView: React.FC<SerialManagementViewProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredSerials.map((s) => {
+                sortByDateDescending(filteredSerials, (s) => s.NgayNhap).map((s) => {
                   const sp = data.SanPham.find((p) => p.MaSP === s.MaSP);
                   const brand = data.ThuongHieu.find((b) => b.MaThuongHieu === sp?.MaThuongHieu);
 
@@ -276,7 +277,7 @@ export const SerialManagementView: React.FC<SerialManagementViewProps> = ({
 
                       <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{s.NCC}</td>
 
-                      <td className="px-5 py-3 text-slate-500">{s.NgayNhap}</td>
+                      <td className="px-5 py-3 text-slate-500 font-medium">{formatDateTime(s.NgayNhap)}</td>
 
                       <td className="px-5 py-3 text-right font-bold text-slate-800 dark:text-slate-200">
                         {formatVND(s.GiaNhap)}
@@ -375,7 +376,7 @@ export const SerialManagementView: React.FC<SerialManagementViewProps> = ({
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 col-span-2">
                   <span className="text-slate-400 block text-[10px]">Hóa Đơn Bán & Khách Hàng</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    Đơn: {selectedSerial.MaDH} • Mua ngày: {selectedSerial.Ngayban}
+                    Đơn: {selectedSerial.MaDH} • Mua ngày: {formatDateTime(selectedSerial.Ngayban)}
                   </span>
                 </div>
               )}

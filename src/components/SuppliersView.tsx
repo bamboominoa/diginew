@@ -3,6 +3,7 @@ import { DatabaseSchema, NCC } from '../types';
 import { db } from '../services/db';
 import { Building, Search, Plus, Phone, MapPin, Download, Edit2 } from 'lucide-react';
 import { convertTableToCSV, downloadCSV } from '../services/googleSheets';
+import { getFormattedNow, sortByDateDescending } from '../utils/dateUtils';
 
 interface SuppliersViewProps {
   data: DatabaseSchema;
@@ -65,7 +66,7 @@ export const SuppliersView: React.FC<SuppliersViewProps> = ({ data }) => {
       DiaChi: diaChi.trim() || 'Việt Nam',
       TongNoNCC: editingSupplier ? editingSupplier.TongNoNCC : 0,
       TongNhapNCC: editingSupplier ? editingSupplier.TongNhapNCC : 0,
-      NgayTao: editingSupplier ? editingSupplier.NgayTao : new Date().toISOString().substring(0, 10),
+      NgayTao: editingSupplier ? editingSupplier.NgayTao : getFormattedNow(),
     };
 
     if (editingSupplier) {
@@ -177,7 +178,7 @@ export const SuppliersView: React.FC<SuppliersViewProps> = ({ data }) => {
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {filteredSuppliers.map((c) => (
+              {sortByDateDescending(filteredSuppliers, (c) => c.NgayTao).map((c) => (
                 <tr
                   key={c.MaNCC}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DatabaseSchema, NhapHang, ChiTietNhapHang } from '../types';
+import { formatDateTime, sortByDateDescending, getFormattedNow } from '../utils/dateUtils';
 import { db } from '../services/db';
 import {
   ArrowLeft,
@@ -60,17 +61,6 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
 
   // Cart of products to import - Starts empty for new receipts
   const [importCart, setImportCart] = useState<ImportCartItem[]>([]);
-
-  // Format current time dynamically for receipt
-  const getFormattedNow = () => {
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const yyyy = now.getFullYear();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    return `${dd} / ${mm} / ${yyyy}   ${hh} : ${min}`;
-  };
 
   // Sidebar Form values
   const [ngayNhap, setNgayNhap] = useState<string>(getFormattedNow());
@@ -1092,15 +1082,15 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {data.NhapHang.map((pn, idx) => {
+                  {sortByDateDescending(data.NhapHang, (pn) => pn.NgayNhap).map((pn, idx) => {
                     const ncc = data.NCC.find((c) => c.MaNCC === pn.MaNCC);
                     return (
                       <tr key={`${pn.MaNH}-${idx}`} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                         <td className="py-3 px-4 font-bold text-blue-600 dark:text-blue-400">
                           {pn.MaNH}
                         </td>
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                          {pn.NgayNhap}
+                        <td className="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium">
+                          {formatDateTime(pn.NgayNhap)}
                         </td>
                         <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
                           {ncc ? ncc.TenNhaCungCap : pn.MaNCC}

@@ -17,6 +17,7 @@ import {
 } from '../types';
 import { INITIAL_DATABASE } from '../data/initialData';
 import { autoSyncToGoogleSheets, setPreviousSnapshot } from './googleSheets';
+import { getFormattedNow, formatDateTime } from '../utils/dateUtils';
 
 const STORAGE_KEY = 'POS_SERIAL_DATABASE_V1';
 
@@ -335,7 +336,7 @@ class DatabaseService {
     this.data.ChiTietDonHang.push(...details);
 
     // 3. Process Serial changes & stock cards
-    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const now = getFormattedNow();
 
     details.forEach((det) => {
       const sp = this.data.SanPham.find((p) => p.MaSP === det.MaSP);
@@ -348,7 +349,7 @@ class DatabaseService {
           serialObj.TrangThai = 'DaBan';
           serialObj.MaDH = order.MaDH;
           serialObj.MaKH = order.MaKH;
-          serialObj.Ngayban = order.NgayBan.substring(0, 10);
+          serialObj.Ngayban = order.NgayBan;
         }
       });
 
@@ -377,7 +378,7 @@ class DatabaseService {
     if (customer) {
       customer.TongChiTieu += order.KhachPhaiTra;
       customer.TongNoHienTai += Math.max(0, order.KhachPhaiTra - order.KhachThanhToan);
-      customer.NgayMuaGanNhat = order.NgayBan.substring(0, 10);
+      customer.NgayMuaGanNhat = order.NgayBan;
     }
 
     this.saveToStorage();
@@ -401,7 +402,7 @@ class DatabaseService {
     // 2. Add receipt details
     this.data.ChiTietNhapHang.push(...details);
 
-    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const now = getFormattedNow();
     const supplier = this.data.NCC.find((s) => s.MaNCC === receipt.MaNCC);
     const nccName = supplier ? supplier.TenNhaCungCap : 'NCC';
 
@@ -419,7 +420,7 @@ class DatabaseService {
             NCC: nccName,
             GiaNhap: det.GiaNhap,
             TrangThai: 'TrongKho',
-            NgayNhap: receipt.NgayNhap.substring(0, 10),
+            NgayNhap: receipt.NgayNhap,
             MaDH: null,
             MaKH: null,
             Ngayban: null,

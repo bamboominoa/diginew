@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DatabaseSchema, StockCard } from '../types';
 import { Search, History, ArrowDownLeft, ArrowUpRight, ShieldAlert, Download } from 'lucide-react';
 import { convertTableToCSV, downloadCSV } from '../services/googleSheets';
+import { formatDateTime, sortByDateDescending } from '../utils/dateUtils';
 
 interface StockCardsViewProps {
   data: DatabaseSchema;
@@ -116,7 +117,7 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {filteredCards.map((sc, idx) => {
+              {sortByDateDescending(filteredCards, (sc) => sc.NgayGio).map((sc, idx) => {
                 const sp = data.SanPham.find((p) => p.MaSP === sc.MaSP);
 
                 return (
@@ -125,10 +126,10 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <td className="px-5 py-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                      {sc.MaThucHien}
+                      {sc.MaTheKho || sc.MaChungTu}
                     </td>
 
-                    <td className="px-5 py-3 text-slate-500">{sc.NgayGio}</td>
+                    <td className="px-5 py-3 text-slate-500 font-medium">{formatDateTime(sc.NgayGio)}</td>
 
                     <td className="px-5 py-3">
                       <span className="font-bold text-slate-900 dark:text-slate-100 block">

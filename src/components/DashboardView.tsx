@@ -1,5 +1,6 @@
 import React from 'react';
 import { DatabaseSchema, ViewTab } from '../types';
+import { formatDateTime, sortByDateDescending } from '../utils/dateUtils';
 import {
   DollarSign,
   TrendingUp,
@@ -288,7 +289,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ data, setCurrentTa
           </div>
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {data.DonHang.slice(0, 4).map((dh, idx) => {
+            {sortByDateDescending(data.DonHang, (dh) => dh.NgayBan).slice(0, 4).map((dh, idx) => {
               const kh = data.KhachHang.find((c) => c.MaKH === dh.MaKH);
 
               return (
@@ -298,7 +299,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ data, setCurrentTa
                       {dh.MaDH} - {kh ? kh.TenKhachHang : 'Khách lẻ'}
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      {dh.NgayBan} • {dh.HinhThucThanhToan}
+                      {formatDateTime(dh.NgayBan)} • {dh.HinhThucThanhToan}
                     </span>
                   </div>
                   <div className="text-right">
