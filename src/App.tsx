@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DatabaseSchema, DonHang, ChiTietDonHang, NguoiDung } from './types';
 import { db } from './services/db';
+import { startAutoPullTimer } from './services/googleSheets';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { DashboardView } from './components/DashboardView';
@@ -47,6 +48,9 @@ export default function App() {
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
   useEffect(() => {
+    // Start background auto-pull from Google Sheets (and immediate load on page refresh)
+    startAutoPullTimer(15000);
+
     const handleSynced = (e: Event) => {
       const customEv = e as CustomEvent;
       const time = customEv.detail?.timestamp || new Date().toLocaleTimeString('vi-VN');

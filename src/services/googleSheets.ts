@@ -1,4 +1,5 @@
 import { DatabaseSchema } from '../types';
+import { db } from './db';
 
 export interface SheetSyncConfig {
   webhookUrl: string;
@@ -662,4 +663,85 @@ export async function pullDataFromGoogleSheets(
     };
   }
 }
+
+let autoPullInterval: any = null;
+
+/**
+ * Starts auto-pulling from Google Sheets on app startup/refresh and periodically (every 15s)
+ * Automatically checks for new or modified rows directly on Google Sheets and merges them into WebApp
+ */
+export function startAutoPullTimer(intervalMs = 15000): void {
+  if (autoPullInterval) {
+    clearInterval(autoPullInterval);
+  }
+
+  const doPull = async () => {
+    const dbData = db.getFullDatabase();
+    let webhookUrl = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
+    const settingObj = dbData.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
+    const settingUrl = settingObj?.GiaTri ? String(settingObj.GiaTri).trim() : '';
+
+    if ((!webhookUrl || webhookUrl.includes('...')) && settingUrl && settingUrl.startsWith('http') && !settingUrl.includes('...')) {
+      webhookUrl = settingUrl;
+      localStorage.setItem('GOOGLE_SHEETS_WEBHOOK_URL', webhookUrl);
+    } else if (webhookUrl && webhookUrl.startsWith('http') && !webhookUrl.includes('...') && (!settingUrl || settingUrl.includes('...') || settingUrl !== webhookUrl)) {
+      db.updateSetting({
+        MaCauHinh: 'WEBHOOK_URL',
+        TenCauHinh: 'Google Apps Script Webhook URL',
+        GiaTri: webhookUrl,
+        LoaiCauHinh: 'GoogleSheets',
+        GhiChu: 'URL nhận và đồng bộ dữ liệu 2 chiều với Google Sheets',
+        ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
+      });
+    }
+
+    if (!webhookUrl || !webhookUrl.startsWith('http') || webhookUrl.includes('...')) {
+      return;
+    }
+
+    // Auto-update WEBAPP_DOMAIN in setting if changed
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      const currentOrigin = window.location.origin;
+      const domainSetting = dbData.Setting?.find((s) => s.MaCauHinh === 'WEBAPP_DOMAIN');
+      if (!domainSetting || domainSetting.GiaTri !== currentOrigin) {
+        db.updateSetting({
+          MaCauHinh: 'WEBAPP_DOMAIN',
+          TenCauHinh: 'Domain Webapp AI Studio',
+          GiaTri: currentOrigin,
+          LoaiCauHinh: 'System',
+          GhiChu: 'Địa chỉ domain máy chủ web nhận thông báo Webhook',
+          ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
+        });
+      }
+    }
+
+    try {
+      const res = await pullDataFromGoogleSheets(webhookUrl);
+      if (res.success && res.data) {
+        const { newCount, updatedCount } = db.mergeFromGoogleSheets(res.data);
+        if (newCount > 0 || updatedCount > 0) {
+          console.log(`📥 [Auto-Pull Google Sheets] Đã tự động cập nhật: ${newCount} dòng mới, ${updatedCount} dòng chỉnh sửa.`);
+          window.dispatchEvent(
+            new CustomEvent('google-sheets-pulled', {
+              detail: {
+                newCount,
+                updatedCount,
+                timestamp: new Date().toLocaleTimeString('vi-VN'),
+              },
+            })
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('Auto pull background check warning:', err);
+    }
+  };
+
+  // Immediate pull on call (page load/refresh)
+  doPull();
+
+  // Periodic polling timer
+  autoPullInterval = setInterval(doPull, intervalMs);
+}
+
 

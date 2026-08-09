@@ -31,9 +31,32 @@ interface SheetsSyncViewProps {
 }
 
 export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
-  const [webhookUrl, setWebhookUrl] = useState(
-    localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || ''
-  );
+  const getInitialWebhookUrl = (): string => {
+    const local = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
+    if (local && local.startsWith('http') && !local.includes('...')) {
+      return local;
+    }
+    const settingObj = data.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
+    if (settingObj && settingObj.GiaTri && String(settingObj.GiaTri).startsWith('http') && !String(settingObj.GiaTri).includes('...')) {
+      const url = String(settingObj.GiaTri).trim();
+      localStorage.setItem('GOOGLE_SHEETS_WEBHOOK_URL', url);
+      return url;
+    }
+    return local;
+  };
+
+  const [webhookUrl, setWebhookUrl] = useState<string>(getInitialWebhookUrl);
+
+  React.useEffect(() => {
+    const settingObj = data.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
+    if (settingObj && settingObj.GiaTri && String(settingObj.GiaTri).startsWith('http') && !String(settingObj.GiaTri).includes('...')) {
+      const url = String(settingObj.GiaTri).trim();
+      if (!webhookUrl || webhookUrl.includes('...') || webhookUrl !== url) {
+        setWebhookUrl(url);
+        localStorage.setItem('GOOGLE_SHEETS_WEBHOOK_URL', url);
+      }
+    }
+  }, [data.Setting]);
   const [isCopied, setIsCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
