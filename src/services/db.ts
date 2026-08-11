@@ -18,8 +18,252 @@ import {
 import { INITIAL_DATABASE } from '../data/initialData';
 import { autoSyncToGoogleSheets, setPreviousSnapshot } from './googleSheets';
 import { getFormattedNow, formatDateTime } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 
-const STORAGE_KEY = 'POS_SERIAL_DATABASE_V1';
+const STORAGE_KEY = 'POS_SERIAL_DATABASE_V2';
+
+function migrateAndSanitizeDatabase(parsed: any, isInitialDefault = false): DatabaseSchema {
+  const initialCopy: DatabaseSchema = JSON.parse(JSON.stringify(INITIAL_DATABASE));
+  if (!parsed || typeof parsed !== 'object') return initialCopy;
+
+  const rawSanPham: SanPham[] = Array.isArray(parsed.SanPham) ? parsed.SanPham : (isInitialDefault ? initialCopy.SanPham : []);
+  const rawKhachHang: KhachHang[] = Array.isArray(parsed.KhachHang) ? parsed.KhachHang : (isInitialDefault ? initialCopy.KhachHang : []);
+  const rawNCC: NCC[] = Array.isArray(parsed.NCC) ? parsed.NCC : (isInitialDefault ? initialCopy.NCC : []);
+  const rawDonHang: DonHang[] = Array.isArray(parsed.DonHang) ? parsed.DonHang : (isInitialDefault ? initialCopy.DonHang : []);
+  const rawNhapHang: NhapHang[] = Array.isArray(parsed.NhapHang) ? parsed.NhapHang : (Array.isArray(parsed.PhieuNhap) ? parsed.PhieuNhap : (isInitialDefault ? initialCopy.NhapHang : []));
+  const rawStockCards: StockCard[] = Array.isArray(parsed.StockCards) ? parsed.StockCards : (isInitialDefault ? initialCopy.StockCards : []);
+  const rawChiTietDH: ChiTietDonHang[] = Array.isArray(parsed.ChiTietDonHang) ? parsed.ChiTietDonHang : (isInitialDefault ? initialCopy.ChiTietDonHang : []);
+  const rawChiTietNH: ChiTietNhapHang[] = Array.isArray(parsed.ChiTietNhapHang) ? parsed.ChiTietNhapHang : (isInitialDefault ? initialCopy.ChiTietNhapHang : []);
+  const rawKhoSerial: KhoSerial[] = Array.isArray(parsed.KhoSerial) ? parsed.KhoSerial : (isInitialDefault ? initialCopy.KhoSerial : []);
+  const rawNguoiDung: NguoiDung[] = Array.isArray(parsed.NguoiDung) ? parsed.NguoiDung : (isInitialDefault ? initialCopy.NguoiDung : []);
+
+  // Build ID Mapping Maps if any ID is in old format
+  const mapSP = new Map<string, string>();
+  const mapKH = new Map<string, string>();
+  const mapNCC = new Map<string, string>();
+  const mapDH = new Map<string, string>();
+  const mapNH = new Map<string, string>();
+
+  // Sanitize SanPham
+  const seenSP = new Set<string>();
+  const sanPham: SanPham[] = [];
+  rawSanPham.forEach((sp, idx) => {
+    let newId = sp.MaSP;
+    if (!newId || !/^SP\d{5}$/.test(newId) || seenSP.has(newId)) {
+      let counter = idx + 1;
+      newId = `SP${String(counter).padStart(5, '0')}`;
+      while (seenSP.has(newId)) {
+        counter++;
+        newId = `SP${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenSP.add(newId);
+    if (sp.MaSP) mapSP.set(sp.MaSP, newId);
+    sanPham.push({ ...sp, MaSP: newId });
+  });
+
+  // Sanitize KhachHang
+  const seenKH = new Set<string>();
+  const khachHang: KhachHang[] = [];
+  rawKhachHang.forEach((kh, idx) => {
+    let newId = kh.MaKH;
+    if (!newId || !/^KH\d{5}$/.test(newId) || seenKH.has(newId)) {
+      let counter = idx + 1;
+      newId = `KH${String(counter).padStart(5, '0')}`;
+      while (seenKH.has(newId)) {
+        counter++;
+        newId = `KH${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenKH.add(newId);
+    if (kh.MaKH) mapKH.set(kh.MaKH, newId);
+    khachHang.push({ ...kh, MaKH: newId });
+  });
+
+  // Sanitize NCC
+  const seenNCC = new Set<string>();
+  const ncc: NCC[] = [];
+  rawNCC.forEach((n, idx) => {
+    let newId = n.MaNCC;
+    if (!newId || !/^NCC\d{5}$/.test(newId) || seenNCC.has(newId)) {
+      let counter = idx + 1;
+      newId = `NCC${String(counter).padStart(5, '0')}`;
+      while (seenNCC.has(newId)) {
+        counter++;
+        newId = `NCC${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenNCC.add(newId);
+    if (n.MaNCC) mapNCC.set(n.MaNCC, newId);
+    ncc.push({ ...n, MaNCC: newId });
+  });
+
+  // Sanitize DonHang
+  const seenDH = new Set<string>();
+  const donHang: DonHang[] = [];
+  rawDonHang.forEach((dh, idx) => {
+    let newId = dh.MaDH;
+    if (!newId || !/^DH\d{5}$/.test(newId) || seenDH.has(newId)) {
+      let counter = idx + 1;
+      newId = `DH${String(counter).padStart(5, '0')}`;
+      while (seenDH.has(newId)) {
+        counter++;
+        newId = `DH${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenDH.add(newId);
+    if (dh.MaDH) mapDH.set(dh.MaDH, newId);
+    const updatedMaKH = mapKH.get(dh.MaKH) || (dh.MaKH && /^KH\d{5}$/.test(dh.MaKH) ? dh.MaKH : 'KH00001');
+    donHang.push({ ...dh, MaDH: newId, MaKH: updatedMaKH });
+  });
+
+  // Sanitize NhapHang
+  const seenNH = new Set<string>();
+  const nhapHang: NhapHang[] = [];
+  rawNhapHang.forEach((nh, idx) => {
+    let newId = nh.MaNH;
+    if (!newId || !/^NH\d{5}$/.test(newId) || seenNH.has(newId)) {
+      let counter = idx + 1;
+      newId = `NH${String(counter).padStart(5, '0')}`;
+      while (seenNH.has(newId)) {
+        counter++;
+        newId = `NH${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenNH.add(newId);
+    if (nh.MaNH) mapNH.set(nh.MaNH, newId);
+    const updatedMaNCC = mapNCC.get(nh.MaNCC) || (nh.MaNCC && /^NCC\d{5}$/.test(nh.MaNCC) ? nh.MaNCC : 'NCC00001');
+    nhapHang.push({ ...nh, MaNH: newId, MaNCC: updatedMaNCC });
+  });
+
+  // Sanitize ChiTietDonHang
+  const seenCTDH = new Set<string>();
+  const chiTietDonHang: ChiTietDonHang[] = [];
+  rawChiTietDH.forEach((ct, idx) => {
+    const updatedMaDH = mapDH.get(ct.MaDH) || ct.MaDH;
+    const updatedMaSP = mapSP.get(ct.MaSP) || ct.MaSP;
+    let newMaCT = ct.MaChiTietDH;
+    if (!newMaCT || !/^CTDH\d{5}$/.test(newMaCT) || seenCTDH.has(newMaCT)) {
+      let counter = idx + 1;
+      newMaCT = `CTDH${String(counter).padStart(5, '0')}`;
+      while (seenCTDH.has(newMaCT)) {
+        counter++;
+        newMaCT = `CTDH${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenCTDH.add(newMaCT);
+    chiTietDonHang.push({ ...ct, MaChiTietDH: newMaCT, MaDH: updatedMaDH, MaSP: updatedMaSP });
+  });
+
+  // Sanitize ChiTietNhapHang
+  const seenCTNH = new Set<string>();
+  const chiTietNhapHang: ChiTietNhapHang[] = [];
+  rawChiTietNH.forEach((ct, idx) => {
+    const updatedMaNH = mapNH.get(ct.MaNH) || ct.MaNH;
+    const updatedMaSP = mapSP.get(ct.MaSP) || ct.MaSP;
+    let newMaCT = ct.MaChiTietNH;
+    if (!newMaCT || !/^CTNH\d{5}$/.test(newMaCT) || seenCTNH.has(newMaCT)) {
+      let counter = idx + 1;
+      newMaCT = `CTNH${String(counter).padStart(5, '0')}`;
+      while (seenCTNH.has(newMaCT)) {
+        counter++;
+        newMaCT = `CTNH${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenCTNH.add(newMaCT);
+    chiTietNhapHang.push({ ...ct, MaChiTietNH: newMaCT, MaNH: updatedMaNH, MaSP: updatedMaSP });
+  });
+
+  // Sanitize StockCards
+  const seenTK = new Set<string>();
+  const stockCards: StockCard[] = [];
+  rawStockCards.forEach((sc: any, idx) => {
+    const updatedMaSP = mapSP.get(sc.MaSP) || sc.MaSP;
+    let updatedMaChungTu = sc.MaChungTu;
+    if (mapDH.has(sc.MaChungTu)) updatedMaChungTu = mapDH.get(sc.MaChungTu)!;
+    if (mapNH.has(sc.MaChungTu)) updatedMaChungTu = mapNH.get(sc.MaChungTu)!;
+
+    let newMaTK = sc.MaTheKho;
+    if (!newMaTK || !/^TK\d{5}$/.test(newMaTK) || seenTK.has(newMaTK)) {
+      let counter = idx + 1;
+      newMaTK = `TK${String(counter).padStart(5, '0')}`;
+      while (seenTK.has(newMaTK)) {
+        counter++;
+        newMaTK = `TK${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenTK.add(newMaTK);
+
+    const loai = sc.LoaiGiaoDich || sc.LoaiPhieu || 'XuatBan';
+    const changeQty = Number(sc.SoLuongThayDoi ?? sc.SoLuong ?? 0);
+    const tonQty = Number(sc.SoLuongTonSauGiaoDich ?? sc.TonSauGiaoDich ?? 0);
+    const nv = sc.NhanVienThucHien || sc.NguoiThucHien || '';
+
+    stockCards.push({
+      ...sc,
+      MaTheKho: newMaTK,
+      MaSP: updatedMaSP,
+      MaChungTu: updatedMaChungTu,
+      LoaiGiaoDich: loai,
+      LoaiPhieu: loai,
+      SoLuongThayDoi: changeQty,
+      SoLuong: changeQty,
+      SoLuongTonSauGiaoDich: tonQty,
+      TonSauGiaoDich: tonQty,
+      NhanVienThucHien: nv,
+      NguoiThucHien: nv,
+    });
+  });
+
+  // Sanitize KhoSerial
+  const khoSerial: KhoSerial[] = rawKhoSerial.map((s) => {
+    const updatedMaSP = mapSP.get(s.MaSP) || s.MaSP;
+    const updatedMaPN = mapNH.get(s.MaPN) || s.MaPN;
+    const updatedMaDH = s.MaDH ? (mapDH.get(s.MaDH) || s.MaDH) : undefined;
+    const updatedMaKH = s.MaKH ? (mapKH.get(s.MaKH) || s.MaKH) : undefined;
+
+    return {
+      ...s,
+      MaSP: updatedMaSP,
+      MaPN: updatedMaPN,
+      MaDH: updatedMaDH,
+      MaKH: updatedMaKH,
+    };
+  });
+
+  // Sanitize NguoiDung
+  const seenUIDs = new Set<string>();
+  const nguoiDung: NguoiDung[] = [];
+  rawNguoiDung.forEach((u, idx) => {
+    let newId = u.MaUID;
+    if (!newId || !/^UID\d{5}$/.test(newId) || seenUIDs.has(newId)) {
+      let counter = idx + 1;
+      newId = `UID${String(counter).padStart(5, '0')}`;
+      while (seenUIDs.has(newId)) {
+        counter++;
+        newId = `UID${String(counter).padStart(5, '0')}`;
+      }
+    }
+    seenUIDs.add(newId);
+    nguoiDung.push({ ...u, MaUID: newId });
+  });
+
+  return {
+    Setting: Array.isArray(parsed.Setting) ? parsed.Setting : (isInitialDefault ? initialCopy.Setting : []),
+    ThuongHieu: Array.isArray(parsed.ThuongHieu) ? parsed.ThuongHieu : (isInitialDefault ? initialCopy.ThuongHieu : []),
+    NhomHang: Array.isArray(parsed.NhomHang) ? parsed.NhomHang : (isInitialDefault ? initialCopy.NhomHang : []),
+    SanPham: sanPham,
+    KhoSerial: khoSerial,
+    StockCards: stockCards,
+    KhachHang: khachHang,
+    NCC: ncc,
+    DonHang: donHang,
+    ChiTietDonHang: chiTietDonHang,
+    NhapHang: nhapHang,
+    ChiTietNhapHang: chiTietNhapHang,
+    NguoiDung: nguoiDung,
+  };
+}
 
 class DatabaseService {
   private data: DatabaseSchema;
@@ -72,60 +316,33 @@ class DatabaseService {
   }
 
   private loadFromStorage(): DatabaseSchema {
-    const initialCopy: DatabaseSchema = JSON.parse(JSON.stringify(INITIAL_DATABASE));
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      let stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        const oldV1 = localStorage.getItem('POS_SERIAL_DATABASE_V1');
+        if (oldV1) stored = oldV1;
+      }
+
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === 'object') {
-          const rawDonHang: DonHang[] = Array.isArray(parsed.DonHang) ? parsed.DonHang : initialCopy.DonHang;
-          const rawNhapHang: NhapHang[] = Array.isArray(parsed.NhapHang) ? parsed.NhapHang : (Array.isArray(parsed.PhieuNhap) ? parsed.PhieuNhap : initialCopy.NhapHang);
-
-          // Deduplicate MaDH
-          const seenMaDH = new Set<string>();
-          const sanitizedDonHang = rawDonHang.map((order, idx) => {
-            if (!order.MaDH || seenMaDH.has(order.MaDH)) {
-              const uniqueId = `${order.MaDH || 'DH' + Date.now()}-${idx + 1}`;
-              seenMaDH.add(uniqueId);
-              return { ...order, MaDH: uniqueId };
-            }
-            seenMaDH.add(order.MaDH);
-            return order;
-          });
-
-          // Deduplicate MaNH
-          const seenMaNH = new Set<string>();
-          const sanitizedNhapHang = rawNhapHang.map((receipt, idx) => {
-            if (!receipt.MaNH || seenMaNH.has(receipt.MaNH)) {
-              const uniqueId = `${receipt.MaNH || 'NH' + Date.now()}-${idx + 1}`;
-              seenMaNH.add(uniqueId);
-              return { ...receipt, MaNH: uniqueId };
-            }
-            seenMaNH.add(receipt.MaNH);
-            return receipt;
-          });
-
-          return {
-            Setting: Array.isArray(parsed.Setting) ? parsed.Setting : initialCopy.Setting,
-            ThuongHieu: Array.isArray(parsed.ThuongHieu) ? parsed.ThuongHieu : initialCopy.ThuongHieu,
-            NhomHang: Array.isArray(parsed.NhomHang) ? parsed.NhomHang : initialCopy.NhomHang,
-            SanPham: Array.isArray(parsed.SanPham) ? parsed.SanPham : initialCopy.SanPham,
-            KhoSerial: Array.isArray(parsed.KhoSerial) ? parsed.KhoSerial : initialCopy.KhoSerial,
-            StockCards: Array.isArray(parsed.StockCards) ? parsed.StockCards : initialCopy.StockCards,
-            KhachHang: Array.isArray(parsed.KhachHang) ? parsed.KhachHang : initialCopy.KhachHang,
-            NCC: Array.isArray(parsed.NCC) ? parsed.NCC : initialCopy.NCC,
-            DonHang: sanitizedDonHang,
-            ChiTietDonHang: Array.isArray(parsed.ChiTietDonHang) ? parsed.ChiTietDonHang : initialCopy.ChiTietDonHang,
-            NhapHang: sanitizedNhapHang,
-            ChiTietNhapHang: Array.isArray(parsed.ChiTietNhapHang) ? parsed.ChiTietNhapHang : initialCopy.ChiTietNhapHang,
-            NguoiDung: Array.isArray(parsed.NguoiDung) ? parsed.NguoiDung : initialCopy.NguoiDung,
-          };
+          const sanitized = migrateAndSanitizeDatabase(parsed);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+          return sanitized;
         }
       }
     } catch (e) {
       console.error('Failed to load database from LocalStorage:', e);
     }
-    return initialCopy;
+    const initial = JSON.parse(JSON.stringify(INITIAL_DATABASE));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+    return initial;
+  }
+
+  public resetToDefaultDatabase(): DatabaseSchema {
+    this.data = JSON.parse(JSON.stringify(INITIAL_DATABASE));
+    this.saveToStorage();
+    return this.data;
   }
 
   public saveToStorage(): void {
@@ -360,7 +577,7 @@ class DatabaseService {
 
       // Add Stock Card audit entry
       const newStockCard: StockCard = {
-        MaTheKho: 'TK' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 10),
+        MaTheKho: generateNextId('TK', this.data.StockCards, 'MaTheKho', 5),
         NgayGio: now,
         MaSP: det.MaSP,
         LoaiGiaoDich: 'XuatBan',
@@ -441,7 +658,7 @@ class DatabaseService {
       ).length;
 
       const newStockCard: StockCard = {
-        MaTheKho: 'TK' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 10),
+        MaTheKho: generateNextId('TK', this.data.StockCards, 'MaTheKho', 5),
         NgayGio: now,
         MaSP: det.MaSP,
         LoaiGiaoDich: 'NhapKho',
@@ -483,7 +700,19 @@ class DatabaseService {
     this.saveToStorage();
   }
 
-  // --- 13. Import/Merge data from Google Sheets (Incremental Upsert) ---
+  // --- 13. Import/Merge data from Google Sheets (Incremental Upsert or Full Replace) ---
+  public replaceFromGoogleSheets(remoteData: Partial<DatabaseSchema>): void {
+    if (!remoteData || typeof remoteData !== 'object') return;
+    const sanitized = migrateAndSanitizeDatabase(remoteData);
+    this.data = sanitized;
+    this.saveToStorage();
+    setPreviousSnapshot(this.data);
+    this.notifyListeners();
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'DB_MUTATED', timestamp: Date.now() });
+    }
+  }
+
   public mergeFromGoogleSheets(remoteData: Partial<DatabaseSchema>): { newCount: number; updatedCount: number } {
     let totalNew = 0;
     let totalUpdated = 0;
@@ -491,6 +720,8 @@ class DatabaseService {
     if (!remoteData || typeof remoteData !== 'object') {
       return { newCount: 0, updatedCount: 0 };
     }
+
+    const sanitizedRemote = migrateAndSanitizeDatabase(remoteData);
 
     const pkMap: Record<keyof DatabaseSchema, string> = {
       Setting: 'MaCauHinh',
@@ -529,7 +760,7 @@ class DatabaseService {
     const keys = Object.keys(pkMap) as (keyof DatabaseSchema)[];
 
     keys.forEach((key) => {
-      const remoteItems = remoteData[key];
+      const remoteItems = sanitizedRemote[key];
       if (!Array.isArray(remoteItems) || remoteItems.length === 0) return;
 
       const pkField = pkMap[key];

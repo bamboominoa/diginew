@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { db } from '../services/db';
 import { getFormattedNow, formatDateTime, sortByDateDescending } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 import {
   Search,
   ShoppingCart,
@@ -139,12 +140,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
             if (parsed.paymentType !== undefined) setPaymentType(parsed.paymentType);
             if (parsed.orderNotes !== undefined) setOrderNotes(parsed.orderNotes);
 
-            const dateObj = parsed.savedAt ? new Date(parsed.savedAt) : new Date();
-            const timeStr =
-              dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
-              ' ' +
-              dateObj.toLocaleDateString('vi-VN');
-            setDraftRestoredTime(timeStr);
+            setDraftRestoredTime(formatDateTime(parsed.savedAt || new Date()));
           }
         }
       }
@@ -196,7 +192,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
         paymentAccount,
         paymentType,
         orderNotes,
-        savedAt: new Date().toISOString(),
+        savedAt: getFormattedNow(),
       };
       localStorage.setItem('pos_cart_draft', JSON.stringify(draftPayload));
     } else {
@@ -437,7 +433,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
     e.preventDefault();
     if (!newCustName.trim()) return;
 
-    const newId = 'KH' + (data.KhachHang.length + 1).toString().padStart(3, '0');
+    const newId = generateNextId('KH', data.KhachHang, 'MaKH', 5);
     const newCust: KhachHang = {
       MaKH: newId,
       TenKhachHang: newCustName.trim(),
@@ -498,17 +494,13 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
       }
     }
 
-    const orderId =
-      'DH' +
-      new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14) +
-      '-' +
-      Math.floor(100 + Math.random() * 900);
+    const orderId = generateNextId('DH', data.DonHang, 'MaDH', 5);
     const nowStr = getFormattedNow();
 
     const newOrder: DonHang = {
       MaDH: orderId,
       NgayBan: nowStr,
-      MaKH: selectedCustomerId || 'KH003',
+      MaKH: selectedCustomerId || (data.KhachHang[0]?.MaKH || 'KH00001'),
       TongTienHang: subtotal,
       GiamGia: discount,
       KhachPhaiTra: totalPayable,
@@ -521,11 +513,14 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
       GhiChu: orderNotes,
     };
 
-    const details: ChiTietDonHang[] = cart.map((item, idx) => {
+    let currentCtdhList = [...data.ChiTietDonHang];
+    const details: ChiTietDonHang[] = cart.map((item) => {
       const lineNet = Math.max(0, item.giaBan * item.soLuong - item.giamGia);
       const lineVat = item.enableVat ? lineNet * ((item.vatRate || 0) / 100) : 0;
+      const maCtdh = generateNextId('CTDH', currentCtdhList, 'MaChiTietDH', 5);
+      currentCtdhList.push({ MaChiTietDH: maCtdh } as any);
       return {
-        MaChiTietDH: 'CT' + orderId.slice(-8) + idx,
+        MaChiTietDH: maCtdh,
         MaDH: orderId,
         MaSP: item.sanPham.MaSP,
         SoLuong: item.soLuong,
@@ -642,14 +637,14 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
                         Không tìm thấy sản phẩm nào khớp "{productSearchTerm}"
                       </div>
                     ) : (
-                      filteredProducts.map((p) => {
+                      filteredProducts.map((p, idx) => {
                         const inStockSerialsCount = data.KhoSerial.filter(
                           (s) => s.MaSP === p.MaSP && s.TrangThai === 'TrongKho'
                         ).length;
 
                         return (
                           <div
-                            key={p.MaSP}
+                            key={`${p.MaSP}-${idx}`}
                             onClick={() => {
                               handleAddToCart(p);
                               setProductSearchTerm('');
@@ -1467,7 +1462,7 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
                       <div>
                         <span>{sItem.SoSerial}</span>
                         <span className="text-[10px] text-slate-400 block font-sans">
-                          Nhập ngày: {sItem.NgayNhap} • NCC: {sItem.NCC}
+                          Nhập ngày: {formatDateTime(sItem.NgayNhap)} • NCC: {sItem.NCC}
                         </span>
                       </div>
 

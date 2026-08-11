@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DatabaseSchema, KhachHang } from '../types';
 import { db } from '../services/db';
 import { formatDateTime, sortByDateDescending, getFormattedNow } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 import {
   Users,
   Search,
@@ -69,7 +70,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ data }) => {
       setLocalCity(c.Local);
     } else {
       setEditingCustomer(null);
-      setMaKH('KH' + (data.KhachHang.length + 1).toString().padStart(3, '0'));
+      setMaKH(generateNextId('KH', data.KhachHang, 'MaKH', 5));
       setTenKH('');
       setSdt('');
       setDiaChi('');

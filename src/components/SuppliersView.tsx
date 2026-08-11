@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { Building, Search, Plus, Phone, MapPin, Download, Edit2 } from 'lucide-react';
 import { convertTableToCSV, downloadCSV } from '../services/googleSheets';
 import { getFormattedNow, sortByDateDescending } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 
 interface SuppliersViewProps {
   data: DatabaseSchema;
@@ -47,7 +48,7 @@ export const SuppliersView: React.FC<SuppliersViewProps> = ({ data }) => {
       setDiaChi(c.DiaChi);
     } else {
       setEditingSupplier(null);
-      setMaNCC('NCC' + (data.NCC.length + 1).toString().padStart(3, '0'));
+      setMaNCC(generateNextId('NCC', data.NCC, 'MaNCC', 5));
       setTenNCC('');
       setSdt('');
       setDiaChi('');

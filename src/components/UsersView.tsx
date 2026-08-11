@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { DatabaseSchema, NguoiDung } from '../types';
 import { db } from '../services/db';
+import { getFormattedNow } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 import { Users, UserCheck, Shield, Plus, Lock } from 'lucide-react';
 
 interface UsersViewProps {
@@ -20,12 +22,12 @@ export const UsersView: React.FC<UsersViewProps> = ({ data, activeUser, onSwitch
     if (!tenDangNhap.trim() || !hoTen.trim()) return;
 
     const newUser: NguoiDung = {
-      MaUID: 'ND' + (data.NguoiDung.length + 1).toString().padStart(3, '0'),
+      MaUID: generateNextId('UID', data.NguoiDung, 'MaUID', 5),
       TenNguoiDung: hoTen.trim(),
       MatKhau: '123456',
       VaiTro: vaiTro,
       QuyenHan: ['POS', 'Kho'],
-      NgayTao: new Date().toISOString().substring(0, 10),
+      NgayTao: getFormattedNow(),
     };
 
     db.getNguoiDung().push(newUser);
@@ -59,12 +61,12 @@ export const UsersView: React.FC<UsersViewProps> = ({ data, activeUser, onSwitch
 
       {/* Grid of Users */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.NguoiDung.map((user) => {
+        {data.NguoiDung.map((user, idx) => {
           const isActive = user.MaUID === activeUser.MaUID;
 
           return (
             <div
-              key={user.MaUID}
+              key={`${user.MaUID}-${idx}`}
               className={`bg-white dark:bg-slate-900 border rounded-2xl p-5 shadow-xs space-y-3 transition-all ${
                 isActive
                   ? 'border-indigo-500 ring-2 ring-indigo-500/20'

@@ -31,8 +31,9 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const filteredCards = data.StockCards.filter((sc) => {
-    if (typeFilter !== 'all' && sc.LoaiPhieu !== typeFilter) return false;
+  const filteredCards = data.StockCards.filter((sc: any) => {
+    const loai = sc.LoaiGiaoDich || sc.LoaiPhieu || '';
+    if (typeFilter !== 'all' && loai !== typeFilter) return false;
 
     const q = (searchTerm || '').toLowerCase();
     const sp = (data.SanPham || []).find((p) => p.MaSP === sc.MaSP);
@@ -117,8 +118,19 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {sortByDateDescending(filteredCards, (sc) => sc.NgayGio).map((sc, idx) => {
+              {sortByDateDescending(filteredCards, (sc) => sc.NgayGio).map((sc: any, idx) => {
                 const sp = data.SanPham.find((p) => p.MaSP === sc.MaSP);
+                const loai = sc.LoaiGiaoDich || sc.LoaiPhieu || 'XuatBan';
+
+                const changeQty = sc.SoLuongThayDoi ?? sc.SoLuong ?? 0;
+                const qtyNum = typeof changeQty === 'number' ? changeQty : parseFloat(String(changeQty || 0));
+                const isNhap = loai === 'NhapKho' || qtyNum > 0;
+                const absQty = Math.abs(qtyNum);
+
+                const tonRaw = sc.SoLuongTonSauGiaoDich ?? sc.TonSauGiaoDich ?? 0;
+                const tonNum = typeof tonRaw === 'number' ? tonRaw : parseFloat(String(tonRaw || 0));
+
+                const nv = sc.NhanVienThucHien || sc.NguoiThucHien || '-';
 
                 return (
                   <tr
@@ -141,34 +153,30 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
                     <td className="px-5 py-3">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          sc.LoaiPhieu === 'NhapKho'
+                          isNhap
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                            : sc.LoaiPhieu === 'XuatBan'
+                            : loai === 'XuatBan'
                             ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
                             : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
                         }`}
                       >
-                        {sc.LoaiPhieu === 'NhapKho' ? (
+                        {isNhap ? (
                           <ArrowDownLeft className="w-3 h-3" />
                         ) : (
                           <ArrowUpRight className="w-3 h-3" />
                         )}
-                        {sc.LoaiPhieu}
+                        {loai}
                       </span>
                     </td>
 
                     <td className="px-5 py-3 text-center font-bold">
-                      <span
-                        className={
-                          sc.LoaiPhieu === 'NhapKho' ? 'text-emerald-600' : 'text-indigo-600'
-                        }
-                      >
-                        {sc.LoaiPhieu === 'NhapKho' ? `+${sc.SoLuong}` : `-${sc.SoLuong}`}
+                      <span className={isNhap ? 'text-emerald-600' : 'text-indigo-600'}>
+                        {isNhap ? `+${absQty}` : `-${absQty}`}
                       </span>
                     </td>
 
                     <td className="px-5 py-3 text-center font-bold text-slate-800 dark:text-slate-200">
-                      {sc.TonSauGiaoDich}
+                      {tonNum}
                     </td>
 
                     <td className="px-5 py-3 font-mono text-[11px]">
@@ -184,7 +192,7 @@ export const StockCardsView: React.FC<StockCardsViewProps> = ({ data }) => {
                       })()}
                     </td>
 
-                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{sc.NguoiThucHien}</td>
+                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{nv}</td>
                   </tr>
                 );
               })}

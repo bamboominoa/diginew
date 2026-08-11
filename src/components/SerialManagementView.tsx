@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { DatabaseSchema, KhoSerial, TrangThaiSerial } from '../types';
 import { db } from '../services/db';
-import { formatDateTime, sortByDateDescending } from '../utils/dateUtils';
+import { formatDateTime, sortByDateDescending, getFormattedNow } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 import {
   Search,
   QrCode,
@@ -87,11 +88,11 @@ export const SerialManagementView: React.FC<SerialManagementViewProps> = ({
     const newItem: KhoSerial = {
       SoSerial: newSerialNum.trim(),
       MaSP: newMaSP,
-      MaPN: 'PN-THUCONG-' + Date.now().toString().slice(-4),
+      MaPN: generateNextId('NH', data.NhapHang, 'MaNH', 5),
       NCC: newNCC,
       GiaNhap: gia,
       TrangThai: 'TrongKho',
-      NgayNhap: new Date().toISOString().substring(0, 10),
+      NgayNhap: getFormattedNow(),
     };
 
     db.getKhoSerial().unshift(newItem);
@@ -449,8 +450,8 @@ export const SerialManagementView: React.FC<SerialManagementViewProps> = ({
                   onChange={(e) => setNewMaSP(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl dark:bg-slate-800 dark:text-slate-100 font-semibold"
                 >
-                  {data.SanPham.map((sp) => (
-                    <option key={sp.MaSP} value={sp.MaSP}>
+                  {data.SanPham.map((sp, idx) => (
+                    <option key={`${sp.MaSP}-${idx}`} value={sp.MaSP}>
                       {sp.TenSanPham} ({sp.MaSP})
                     </option>
                   ))}

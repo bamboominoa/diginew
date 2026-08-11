@@ -1,6 +1,7 @@
 import React from 'react';
 import { DonHang, ChiTietDonHang, KhachHang } from '../types';
 import { Printer, Download, CheckCircle2 } from 'lucide-react';
+import { formatDateTime } from '../utils/dateUtils';
 
 interface InvoicePrintModalProps {
   order: DonHang;
@@ -65,7 +66,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
 
             <div className="flex justify-between">
               <span>Thời gian xuất:</span>
-              <span>{order.NgayBan}</span>
+              <span>{formatDateTime(order.NgayBan)}</span>
             </div>
 
             <div className="flex justify-between">

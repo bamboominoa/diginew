@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DatabaseSchema, SanPham, ThuongHieu, NhomHang } from '../types';
 import { db } from '../services/db';
 import { getFormattedNow, formatDateTime, sortByDateDescending } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 import {
   Package,
   Plus,
@@ -27,6 +28,16 @@ import {
   SlidersHorizontal,
   ChevronDown,
   ListFilter,
+  Star,
+  Phone,
+  Truck,
+  ShoppingCart,
+  Building2,
+  ArrowRight,
+  History,
+  Clock,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from 'lucide-react';
 import { convertTableToCSV, downloadCSV } from '../services/googleSheets';
 
@@ -48,6 +59,28 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
   const [detailTab, setDetailTab] = useState<'detail' | 'supplier' | 'orders' | 'history'>('detail');
   const [detailSortBy, setDetailSortBy] = useState<'date' | 'code' | 'doc'>('date');
   const [detailSortOrder, setDetailSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Supplier Tab states
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
+  const [favSupplierMap, setFavSupplierMap] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('FAV_PRODUCT_SUPPLIERS');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Orders Tab states
+  const [ordersSearchTerm, setOrdersSearchTerm] = useState('');
+  const [ordersStatusFilter, setOrdersStatusFilter] = useState('all');
+
+  // History Tab states
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historyTypeFilter, setHistoryTypeFilter] = useState('all');
+  const [historySortOrder, setHistorySortOrder] = useState<'asc' | 'desc'>('desc');
+  const [historyDateFrom, setHistoryDateFrom] = useState('');
+  const [historyDateTo, setHistoryDateTo] = useState('');
 
   // Form Fields
   const [formMaSP, setFormMaSP] = useState('');
@@ -95,7 +128,7 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
       setFormTonKhoMin(2);
     } else {
       setEditingProduct(null);
-      setFormMaSP('SP' + (data.SanPham.length + 1).toString().padStart(3, '0'));
+      setFormMaSP(generateNextId('SP', data.SanPham, 'MaSP', 5));
       setFormTenSP('');
       setFormNhom(data.NhomHang[0]?.MaNhomHang || '');
       setFormThuongHieu(data.ThuongHieu[0]?.MaThuongHieu || '');
@@ -160,7 +193,7 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
     if (!catName.trim()) return;
 
     const newCat: NhomHang = {
-      MaNhomHang: 'NH' + (data.NhomHang.length + 1).toString().padStart(3, '0'),
+      MaNhomHang: generateNextId('NH', data.NhomHang, 'MaNhomHang', 3),
       TenNhomHang: catName.trim(),
     };
 
@@ -327,7 +360,7 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
               </thead>
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                {sortByDateDescending(filteredProducts, (p) => p.NgayTao).map((p) => {
+                {sortByDateDescending(filteredProducts, (p) => p.NgayTao).map((p, idx) => {
                   const nhom = data.NhomHang.find((n) => n.MaNhomHang === p.MaNhomHang);
                   const brand = data.ThuongHieu.find((b) => b.MaThuongHieu === p.MaThuongHieu);
                   const serialInStock = data.KhoSerial.filter(
@@ -336,8 +369,9 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
 
                   return (
                     <tr
-                      key={p.MaSP}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      key={`${p.MaSP}-${idx}`}
+                      onClick={() => setViewingDetailProduct(p)}
+                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     >
                       <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-slate-100">
                         <button
@@ -453,7 +487,10 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleOpenProductModal(p)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenProductModal(p);
+                            }}
                             className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
                             title="Chỉnh sửa"
                           >
@@ -982,36 +1019,183 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
 
               {/* TAB CONTENT: NCC ƯA THÍCH */}
               {detailTab === 'supplier' && (() => {
-                const preferredNcc = nccList[0] || {
-                  MaNCC: 'NCC011',
-                  TenNhaCungCap: 'Phúc Thành Phát',
-                  SDT: '0901234567',
+                const ctForProduct = chiTietNHList.filter((ct) => ct.MaSP === p.MaSP);
+                
+                // Group purchases by supplier
+                const statsMap: Record<string, { orderCount: number; totalQty: number; lastPrice: number; lastDate: string }> = {};
+                ctForProduct.forEach((ct) => {
+                  const nh = nhapHangList.find((item) => item.MaNH === ct.MaNH);
+                  if (nh) {
+                    const maNCC = nh.MaNCC || 'NCC_DEFAULT';
+                    if (!statsMap[maNCC]) {
+                      statsMap[maNCC] = { orderCount: 0, totalQty: 0, lastPrice: ct.DonGia || 0, lastDate: nh.NgayNhap || '' };
+                    }
+                    statsMap[maNCC].orderCount += 1;
+                    statsMap[maNCC].totalQty += ct.SoLuong || 1;
+                    statsMap[maNCC].lastPrice = ct.DonGia || statsMap[maNCC].lastPrice;
+                    statsMap[maNCC].lastDate = nh.NgayNhap || statsMap[maNCC].lastDate;
+                  }
+                });
+
+                // Check favored supplier in state / map or fallback to highest order count supplier
+                const currentFavMaNCC = favSupplierMap[p.MaSP] || Object.keys(statsMap)[0] || nccList[0]?.MaNCC || 'NCC00001';
+                const favSupplier = nccList.find((n) => n.MaNCC === currentFavMaNCC) || nccList[0] || {
+                  MaNCC: currentFavMaNCC,
+                  TenNhaCungCap: 'Chưa chọn NCC',
+                  SDT: '---',
                 };
+
+                const favStats = statsMap[favSupplier.MaNCC] || {
+                  orderCount: 0,
+                  totalQty: 0,
+                  lastPrice: p.GiaNhapTrungBinh || 0,
+                  lastDate: 'Chưa có giao dịch',
+                };
+
+                // Filter supplier list by search term
+                const filteredNccList = nccList.filter(
+                  (n) =>
+                    n.TenNhaCungCap.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
+                    n.MaNCC.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
+                    (n.SDT && n.SDT.includes(supplierSearchTerm))
+                );
 
                 return (
                   <div className="py-2 space-y-4">
-                    <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 bg-white dark:bg-slate-900 flex items-center justify-between shadow-2xs">
-                      <div className="flex items-center gap-3">
-                        <span className="px-3 py-1 bg-[#fef3c7] dark:bg-amber-950/60 text-[#d97706] dark:text-amber-400 font-bold text-[11px] rounded-full shrink-0">
-                          Ưa thích
-                        </span>
+                    {/* Featured Favorite Supplier Card */}
+                    <div className="border border-amber-200/80 dark:border-amber-900/60 rounded-3xl p-5 bg-gradient-to-r from-amber-50/50 to-white dark:from-amber-950/20 dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20 font-bold">
+                          <Star className="w-6 h-6 fill-current" />
+                        </div>
                         <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">
-                            {preferredNcc.TenNhaCungCap}
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 font-bold text-[11px] rounded-full">
+                              NCC Ưa Thích Nhất
+                            </span>
+                            <span className="text-xs font-mono text-slate-400 font-semibold">{favSupplier.MaNCC}</span>
                           </div>
-                          <div className="text-xs text-slate-400 mt-0.5 font-medium">
-                            {preferredNcc.MaNCC} · 1 lần mua · gần nhất 06/08/2026
+                          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mt-1">
+                            {favSupplier.TenNhaCungCap}
+                          </h3>
+                          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+                            {favSupplier.SDT && (
+                              <span className="flex items-center gap-1 font-medium">
+                                <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                {favSupplier.SDT}
+                              </span>
+                            )}
+                            <span>· {favStats.orderCount} lượt nhập</span>
+                            <span>· Tổng SL: {favStats.totalQty}</span>
+                            <span>· Gần nhất: {favStats.lastDate && favStats.lastDate !== 'Chưa có giao dịch' ? formatDateTime(favStats.lastDate) : 'Chưa có giao dịch'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div>
-                        <div className="text-[11px] text-slate-400 font-medium text-right">
-                          Giá nhập gần nhất
+                      <div className="flex md:flex-col justify-between items-end gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-slate-200/60 dark:border-slate-800">
+                        <div className="text-left md:text-right">
+                          <div className="text-[11px] text-slate-400 font-medium">Giá nhập gần nhất</div>
+                          <div className="font-extrabold text-indigo-600 dark:text-indigo-400 text-base mt-0.5">
+                            {formatVND(favStats.lastPrice)}
+                          </div>
                         </div>
-                        <div className="font-extrabold text-slate-800 dark:text-slate-100 text-base text-right mt-0.5">
-                          {formatVND(p.GiaNhapTrungBinh || 500000)}
+                      </div>
+                    </div>
+
+                    {/* All Suppliers List to Select or Change Favorite */}
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wider">
+                          Danh sách Nhà Cung Cấp Hệ Thống ({filteredNccList.length})
+                        </h4>
+
+                        <div className="relative w-full sm:w-64">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={supplierSearchTerm}
+                            onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                            placeholder="Tìm NCC theo tên, mã, SĐT..."
+                            className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500"
+                          />
                         </div>
+                      </div>
+
+                      <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                        {filteredNccList.length === 0 ? (
+                          <div className="p-6 text-center text-slate-400 text-xs">
+                            Không tìm thấy nhà cung cấp phù hợp
+                          </div>
+                        ) : (
+                          filteredNccList.map((ncc) => {
+                            const isFav = ncc.MaNCC === currentFavMaNCC;
+                            const st = statsMap[ncc.MaNCC] || { orderCount: 0, totalQty: 0, lastPrice: 0, lastDate: 'Chưa mua' };
+
+                            return (
+                              <div
+                                key={ncc.MaNCC}
+                                className={`p-3.5 flex items-center justify-between gap-3 text-xs transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
+                                  isFav ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                      isFav
+                                        ? 'bg-amber-500 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                    }`}
+                                  >
+                                    <Building2 className="w-4 h-4" />
+                                  </div>
+
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-slate-800 dark:text-slate-100">
+                                        {ncc.TenNhaCungCap}
+                                      </span>
+                                      <span className="font-mono text-[10px] text-slate-400">({ncc.MaNCC})</span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 mt-0.5">
+                                      {ncc.SDT ? `SĐT: ${ncc.SDT} · ` : ''}
+                                      Đã mua {st.orderCount} đơn ({st.totalQty} SP)
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 shrink-0">
+                                  {st.lastPrice > 0 && (
+                                    <div className="text-right hidden sm:block">
+                                      <div className="text-[10px] text-slate-400">Giá mua gần nhất</div>
+                                      <div className="font-bold text-slate-700 dark:text-slate-300">
+                                        {formatVND(st.lastPrice)}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFavSupplierMap((prev) => {
+                                        const updated = { ...prev, [p.MaSP]: ncc.MaNCC };
+                                        localStorage.setItem('FAV_PRODUCT_SUPPLIERS', JSON.stringify(updated));
+                                        return updated;
+                                      });
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 text-xs ${
+                                      isFav
+                                        ? 'bg-amber-500 text-white font-bold shadow-xs'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/50 hover:text-amber-700'
+                                    }`}
+                                  >
+                                    <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                                    <span>{isFav ? 'Đang ưa thích' : 'Chọn ưa thích'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1020,33 +1204,104 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
 
               {/* TAB CONTENT: ĐƠN ĐẶT MUA */}
               {detailTab === 'orders' && (() => {
-                const orders = nhapHangHistory.length > 0 ? nhapHangHistory : [
-                  {
-                    MaNH: 'PM028',
-                    MaNCC: nccList[0]?.MaNCC || 'NCC011',
-                    NgayNhap: '06/08/2026',
-                    TongTienHang: p.GiaNhapTrungBinh || 500000,
-                    TrangThai: 'Đã nhập kho',
-                    SoLuong: 1,
+                const ctForProduct = chiTietNHList.filter((ct) => ct.MaSP === p.MaSP);
+                const rawOrders = ctForProduct.map((ct) => {
+                  const nh = nhapHangList.find((item) => item.MaNH === ct.MaNH);
+                  const ncc = nccList.find((n) => n.MaNCC === nh?.MaNCC);
+                  return {
+                    MaCTNH: ct.MaCTNH,
+                    MaNH: ct.MaNH,
+                    MaNCC: nh?.MaNCC || 'NCC00001',
+                    TenNCC: ncc?.TenNhaCungCap || nh?.MaNCC || 'Nhà cung cấp',
+                    SoLuong: ct.SoLuong || 1,
+                    DonGia: ct.DonGia || p.GiaNhapTrungBinh || 0,
+                    ThanhTien: ct.ThanhTien || (ct.SoLuong || 1) * (ct.DonGia || 0),
+                    NgayNhap: nh?.NgayNhap || '---',
+                    TrangThai: nh?.ConNo && nh.ConNo > 0 ? 'Còn nợ' : 'Đã nhập kho',
+                    GhiChu: nh?.GhiChu || '',
+                  };
+                });
+
+                // Filter
+                let filteredOrders = rawOrders.filter((ord) => {
+                  const matchesSearch =
+                    ordersSearchTerm === '' ||
+                    ord.MaNH.toLowerCase().includes(ordersSearchTerm.toLowerCase()) ||
+                    ord.TenNCC.toLowerCase().includes(ordersSearchTerm.toLowerCase()) ||
+                    ord.GhiChu.toLowerCase().includes(ordersSearchTerm.toLowerCase());
+
+                  const matchesStatus =
+                    ordersStatusFilter === 'all' || ord.TrangThai === ordersStatusFilter;
+
+                  return matchesSearch && matchesStatus;
+                });
+
+                // Sort
+                filteredOrders.sort((a, b) => {
+                  if (detailSortBy === 'code') {
+                    return detailSortOrder === 'asc'
+                      ? a.MaNH.localeCompare(b.MaNH)
+                      : b.MaNH.localeCompare(a.MaNH);
                   }
-                ];
+                  if (detailSortBy === 'doc') {
+                    return detailSortOrder === 'asc'
+                      ? a.ThanhTien - b.ThanhTien
+                      : b.ThanhTien - a.ThanhTien;
+                  }
+                  // default date
+                  return detailSortOrder === 'asc'
+                    ? a.NgayNhap.localeCompare(b.NgayNhap)
+                    : b.NgayNhap.localeCompare(a.NgayNhap);
+                });
+
+                const totalOrdersQty = filteredOrders.reduce((sum, o) => sum + o.SoLuong, 0);
+                const totalOrdersValue = filteredOrders.reduce((sum, o) => sum + o.ThanhTien, 0);
 
                 return (
                   <div className="space-y-4 py-1 text-xs">
+                    {/* Summary KPI Cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl">
+                        <div className="text-[11px] text-slate-400">Tổng Số Đơn Nhập</div>
+                        <div className="text-base font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                          {filteredOrders.length} đơn
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl">
+                        <div className="text-[11px] text-slate-400">Tổng SL Đặt Mua</div>
+                        <div className="text-base font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                          {totalOrdersQty} cái
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl">
+                        <div className="text-[11px] text-slate-400">Tổng Giá Trị Đặt</div>
+                        <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                          {formatVND(totalOrdersValue)}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Filter controls */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="relative flex-1 min-w-[180px]">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
-                          placeholder="Tìm phiếu mua, NCC..."
+                          value={ordersSearchTerm}
+                          onChange={(e) => setOrdersSearchTerm(e.target.value)}
+                          placeholder="Tìm phiếu mua, NCC, ghi chú..."
                           className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                       </div>
 
-                      <select className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 font-medium focus:outline-none cursor-pointer">
-                        <option>Trạng thái: Tất cả</option>
-                        <option>Đã nhập kho</option>
+                      <select
+                        value={ordersStatusFilter}
+                        onChange={(e) => setOrdersStatusFilter(e.target.value)}
+                        className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 font-medium focus:outline-none cursor-pointer"
+                      >
+                        <option value="all">Trạng thái: Tất cả</option>
+                        <option value="Đã nhập kho">Đã nhập kho</option>
+                        <option value="Còn nợ">Còn nợ</option>
                       </select>
 
                       <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 shadow-2xs">
@@ -1056,9 +1311,9 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
                           onChange={(e) => setDetailSortBy(e.target.value as any)}
                           className="bg-transparent text-xs font-normal text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer pr-1"
                         >
-                          <option value="date">Thời gian tạo / ngày chứng từ</option>
-                          <option value="code">Mã</option>
-                          <option value="doc">Chứng từ</option>
+                          <option value="date">Ngày nhập</option>
+                          <option value="code">Mã phiếu</option>
+                          <option value="doc">Thành tiền</option>
                         </select>
                         <button
                           type="button"
@@ -1073,13 +1328,6 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
                           )}
                         </button>
                       </div>
-
-                      <button
-                        type="button"
-                        className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                      >
-                        <Filter className="w-4 h-4" />
-                      </button>
                     </div>
 
                     {/* Table Box */}
@@ -1092,44 +1340,60 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
                               <th className="py-3 px-4">NCC</th>
                               <th className="py-3 px-4 text-center">SL ĐẶT</th>
                               <th className="py-3 px-4 text-right">ĐƠN GIÁ</th>
+                              <th className="py-3 px-4 text-right">THÀNH TIỀN</th>
                               <th className="py-3 px-4 text-center">NGÀY</th>
                               <th className="py-3 px-4 text-center">TRẠNG THÁI</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {orders.map((item, idx) => {
-                              const supplierName = nccList.find((ncc) => ncc.MaNCC === item.MaNCC)?.TenNhaCungCap || 'Phúc Thành Phát';
-                              return (
+                            {filteredOrders.length === 0 ? (
+                              <tr>
+                                <td colSpan={7} className="py-8 text-center text-slate-400">
+                                  Chưa có đơn đặt mua nào cho sản phẩm này.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredOrders.map((item, idx) => (
                                 <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs">
-                                  <td className="py-3.5 px-4 font-normal text-slate-800 dark:text-slate-200 font-mono">
+                                  <td className="py-3.5 px-4 font-bold text-indigo-600 dark:text-indigo-400 font-mono">
                                     {item.MaNH}
                                   </td>
-                                  <td className="py-3.5 px-4 font-normal text-slate-800 dark:text-slate-200">
-                                    {supplierName}
+                                  <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
+                                    {item.TenNCC}
                                   </td>
-                                  <td className="py-3.5 px-4 text-center font-normal text-slate-800 dark:text-slate-200">
-                                    {(item as any).SoLuong || 1}
+                                  <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">
+                                    {item.SoLuong}
                                   </td>
-                                  <td className="py-3.5 px-4 text-right font-normal text-slate-800 dark:text-slate-200">
-                                    {formatVND(item.TongTienHang)}
+                                  <td className="py-3.5 px-4 text-right font-medium text-slate-700 dark:text-slate-300">
+                                    {formatVND(item.DonGia)}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-slate-100">
+                                    {formatVND(item.ThanhTien)}
                                   </td>
                                   <td className="py-3.5 px-4 text-center text-slate-500 font-normal">
-                                    {item.NgayNhap}
+                                    {formatDateTime(item.NgayNhap)}
                                   </td>
                                   <td className="py-3.5 px-4 text-center">
-                                    <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-normal rounded-full text-[11px]">
-                                      {(item as any).TrangThai || 'Đã nhập kho'}
+                                    <span
+                                      className={`px-2.5 py-1 font-medium rounded-full text-[11px] ${
+                                        item.TrangThai === 'Còn nợ'
+                                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                                          : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                                      }`}
+                                    >
+                                      {item.TrangThai}
                                     </span>
                                   </td>
                                 </tr>
-                              );
-                            })}
+                              ))
+                            )}
                           </tbody>
                         </table>
                       </div>
 
-                      <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 font-normal">
-                        {orders.length} kết quả
+                      <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 font-normal flex items-center justify-between">
+                        <span>{filteredOrders.length} đơn đặt mua</span>
+                        <span>Tổng lượng: {totalOrdersQty} SP</span>
                       </div>
                     </div>
                   </div>
@@ -1138,119 +1402,263 @@ export const ProductsManagementView: React.FC<ProductsManagementViewProps> = ({ 
 
               {/* TAB CONTENT: LỊCH SỬ NHẬP/XUẤT */}
               {detailTab === 'history' && (() => {
-                const historyList = [
-                  {
-                    Ma: 'MV852',
-                    Ngay: '06/08/2026',
-                    Loai: 'Nhập mua',
-                    SlNhap: 1,
-                    SlXuat: 0,
-                    DonGia: p.GiaNhapTrungBinh || 500000,
-                    ChungTu: 'PM028',
-                  },
-                  {
-                    Ma: 'MV850',
-                    Ngay: '06/08/2026',
-                    Loai: 'Nhập thủ công',
-                    SlNhap: 5,
-                    SlXuat: 0,
-                    DonGia: p.GiaNhapTrungBinh || 500000,
-                    ChungTu: '',
-                  },
-                ];
+                // 1. Imports from ChiTietNhapHang
+                const ctForProduct = chiTietNHList.filter((ct) => ct.MaSP === p.MaSP);
+                const importLogs = ctForProduct.map((ct) => {
+                  const nh = nhapHangList.find((n) => n.MaNH === ct.MaNH);
+                  const ncc = nccList.find((n) => n.MaNCC === nh?.MaNCC);
+                  return {
+                    id: ct.MaCTNH || `${ct.MaNH}-${ct.MaSP}`,
+                    date: nh?.NgayNhap || '---',
+                    type: 'Nhập mua',
+                    typeCat: 'nhap',
+                    qtyIn: ct.SoLuong || 1,
+                    qtyOut: 0,
+                    price: ct.DonGia || p.GiaNhapTrungBinh || 0,
+                    docNo: ct.MaNH,
+                    partner: ncc?.TenNhaCungCap || nh?.MaNCC || 'Nhà cung cấp',
+                    serials: ct.DanhSachSerial || [],
+                  };
+                });
+
+                // 2. Exports from ChiTietHoaDon
+                const hoaDonList = data?.HoaDon || [];
+                const chiTietHDList = data?.ChiTietHoaDon || [];
+                const ctSales = chiTietHDList.filter((ct) => ct.MaSP === p.MaSP);
+                const exportLogs = ctSales.map((ct) => {
+                  const hd = hoaDonList.find((h) => h.MaHD === ct.MaHD);
+                  return {
+                    id: ct.MaCTHD || `${ct.MaHD}-${ct.MaSP}`,
+                    date: hd?.NgayTao || '---',
+                    type: 'Xuất bán',
+                    typeCat: 'xuat',
+                    qtyIn: 0,
+                    qtyOut: ct.SoLuong || 1,
+                    price: ct.DonGia || p.GiaBanNiemYet || 0,
+                    docNo: ct.MaHD,
+                    partner: hd?.MaKhachHang || 'Khách bán lẻ',
+                    serials: ct.DanhSachSerial || [],
+                  };
+                });
+
+                // 3. Stock card movements
+                const theKhoList = data?.TheKho || [];
+                const tkLogs = theKhoList
+                  .filter((tk) => tk.MaSP === p.MaSP)
+                  .map((tk) => {
+                    const isPos = tk.SoLuongThayDoi > 0;
+                    return {
+                      id: tk.MaTheKho,
+                      date: tk.ThoiGian || '---',
+                      type: tk.LoaiGiaoDich || (isPos ? 'Nhập kho' : 'Xuất kho'),
+                      typeCat: isPos ? 'nhap' : 'xuat',
+                      qtyIn: isPos ? tk.SoLuongThayDoi : 0,
+                      qtyOut: !isPos ? Math.abs(tk.SoLuongThayDoi) : 0,
+                      price: p.GiaNhapTrungBinh || 0,
+                      docNo: tk.MaChungTu || tk.MaTheKho,
+                      partner: tk.GhiChu || 'Điều chỉnh kho',
+                      serials: [],
+                    };
+                  });
+
+                // Combine logs
+                const combinedLogs = [...importLogs, ...exportLogs, ...tkLogs];
+
+                // Filter
+                let filteredLogs = combinedLogs.filter((log) => {
+                  const matchesSearch =
+                    historySearchTerm === '' ||
+                    log.docNo.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+                    log.partner.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+                    log.type.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+                    log.serials.some((s) => s.toLowerCase().includes(historySearchTerm.toLowerCase()));
+
+                  const matchesType =
+                    historyTypeFilter === 'all' || log.typeCat === historyTypeFilter;
+
+                  let matchesDate = true;
+                  if (historyDateFrom) {
+                    matchesDate = matchesDate && log.date >= historyDateFrom;
+                  }
+                  if (historyDateTo) {
+                    matchesDate = matchesDate && log.date <= historyDateTo;
+                  }
+
+                  return matchesSearch && matchesType && matchesDate;
+                });
+
+                // Sort by date
+                filteredLogs.sort((a, b) =>
+                  historySortOrder === 'asc'
+                    ? a.date.localeCompare(b.date)
+                    : b.date.localeCompare(a.date)
+                );
+
+                const totalQtyIn = filteredLogs.reduce((sum, l) => sum + l.qtyIn, 0);
+                const totalQtyOut = filteredLogs.reduce((sum, l) => sum + l.qtyOut, 0);
+                const netBalance = totalQtyIn - totalQtyOut;
 
                 return (
                   <div className="space-y-4 py-1 text-xs">
+                    {/* Summary KPI Bar */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 p-3 rounded-2xl">
+                        <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                          <ArrowDownLeft className="w-3.5 h-3.5" />
+                          <span>Tổng Nhập</span>
+                        </div>
+                        <div className="text-base font-bold text-emerald-700 dark:text-emerald-300 mt-0.5">
+                          +{totalQtyIn} cái
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 p-3 rounded-2xl">
+                        <div className="text-[11px] text-blue-700 dark:text-blue-400 font-medium flex items-center gap-1">
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          <span>Tổng Xuất</span>
+                        </div>
+                        <div className="text-base font-bold text-blue-700 dark:text-blue-300 mt-0.5">
+                          -{totalQtyOut} cái
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                          Thay Đổi Ròng
+                        </div>
+                        <div
+                          className={`text-base font-bold mt-0.5 ${
+                            netBalance >= 0 ? 'text-slate-800 dark:text-slate-100' : 'text-amber-600'
+                          }`}
+                        >
+                          {netBalance >= 0 ? `+${netBalance}` : netBalance} cái
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Filter controls row 1 */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="relative flex-1 min-w-[180px]">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
-                          placeholder="Tìm mã phiếu, chứng từ..."
+                          value={historySearchTerm}
+                          onChange={(e) => setHistorySearchTerm(e.target.value)}
+                          placeholder="Tìm mã phiếu, đối tác, serial..."
                           className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                       </div>
 
-                      <select className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 font-medium focus:outline-none cursor-pointer">
-                        <option>Loại: Tất cả</option>
-                        <option>Nhập mua</option>
-                        <option>Nhập thủ công</option>
+                      <select
+                        value={historyTypeFilter}
+                        onChange={(e) => setHistoryTypeFilter(e.target.value)}
+                        className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs text-slate-700 dark:text-slate-200 font-medium focus:outline-none cursor-pointer"
+                      >
+                        <option value="all">Loại: Tất cả</option>
+                        <option value="nhap">Loại: Nhập kho</option>
+                        <option value="xuat">Loại: Xuất kho</option>
                       </select>
-
-                      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3.5 py-2 text-xs font-medium text-slate-400">
-                        <span>dd/mm/yyyy</span>
-                        <Calendar className="w-3.5 h-3.5 ml-1" />
-                        <span className="mx-1">-</span>
-                        <span>dd/mm/yyyy</span>
-                        <Calendar className="w-3.5 h-3.5 ml-1" />
-                      </div>
-                    </div>
-
-                    {/* Filter controls row 2 */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 cursor-pointer">
-                        <span>Sắp xếp theo</span>
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-500" />
-                      </div>
 
                       <button
                         type="button"
-                        className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        onClick={() => setHistorySortOrder(historySortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-50"
                       >
-                        <SlidersHorizontal className="w-4 h-4" />
+                        <span>Thời gian: {historySortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}</span>
+                        {historySortOrder === 'desc' ? (
+                          <ArrowDown className="w-3.5 h-3.5 text-blue-500" />
+                        ) : (
+                          <ArrowUp className="w-3.5 h-3.5 text-blue-500" />
+                        )}
                       </button>
                     </div>
 
                     {/* Table Box */}
                     <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 overflow-hidden">
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
                           <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              <th className="py-3 px-4">MÃ</th>
-                              <th className="py-3 px-4">NGÀY</th>
-                              <th className="py-3 px-4">LOẠI</th>
+                              <th className="py-3 px-4">NGÀY GIAO DỊCH</th>
+                              <th className="py-3 px-4">LOẠI GIAO DỊCH</th>
                               <th className="py-3 px-4 text-center">SL NHẬP</th>
                               <th className="py-3 px-4 text-center">SL XUẤT</th>
                               <th className="py-3 px-4 text-right">ĐƠN GIÁ</th>
                               <th className="py-3 px-4 font-mono">CHỨNG TỪ</th>
+                              <th className="py-3 px-4">ĐỐI TÁC / GHI CHÚ</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {historyList.map((item, idx) => (
-                              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs">
-                                <td className="py-3.5 px-4 font-normal text-slate-800 dark:text-slate-200 font-mono">
-                                  {item.Ma}
-                                </td>
-                                <td className="py-3.5 px-4 text-slate-500 font-normal">
-                                  {item.Ngay}
-                                </td>
-                                <td className="py-3.5 px-4">
-                                  <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-normal rounded-full text-[11px]">
-                                    {item.Loai}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 text-center font-normal text-slate-800 dark:text-slate-200">
-                                  {item.SlNhap}
-                                </td>
-                                <td className="py-3.5 px-4 text-center font-normal text-slate-800 dark:text-slate-200">
-                                  {item.SlXuat}
-                                </td>
-                                <td className="py-3.5 px-4 text-right font-normal text-slate-800 dark:text-slate-200">
-                                  {formatVND(item.DonGia)}
-                                </td>
-                                <td className="py-3.5 px-4 font-mono font-normal text-slate-700 dark:text-slate-300">
-                                  {item.ChungTu || '—'}
+                            {filteredLogs.length === 0 ? (
+                              <tr>
+                                <td colSpan={7} className="py-8 text-center text-slate-400">
+                                  Chưa có lịch sử nhập/xuất nào cho sản phẩm này.
                                 </td>
                               </tr>
-                            ))}
+                            ) : (
+                              filteredLogs.map((item, idx) => {
+                                const isNhap = item.typeCat === 'nhap';
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs">
+                                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-medium">
+                                      {formatDateTime(item.date)}
+                                    </td>
+                                    <td className="py-3.5 px-4">
+                                      <span
+                                        className={`px-2.5 py-0.5 font-semibold rounded-full text-[11px] ${
+                                          isNhap
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                                            : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                                        }`}
+                                      >
+                                        {item.type}
+                                      </span>
+                                    </td>
+                                    <td className="py-3.5 px-4 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                                      {item.qtyIn > 0 ? `+${item.qtyIn}` : '-'}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-center font-bold text-blue-600 dark:text-blue-400">
+                                      {item.qtyOut > 0 ? `-${item.qtyOut}` : '-'}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right font-medium text-slate-800 dark:text-slate-200">
+                                      {formatVND(item.price)}
+                                    </td>
+                                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                      {item.docNo || '—'}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                                      <div>{item.partner}</div>
+                                      {item.serials && item.serials.length > 0 && (
+                                        <div className="flex gap-1 mt-0.5 flex-wrap">
+                                          {item.serials.slice(0, 3).map((s, i) => (
+                                            <span
+                                              key={i}
+                                              className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-[10px] font-mono text-slate-500 rounded"
+                                            >
+                                              {s}
+                                            </span>
+                                          ))}
+                                          {item.serials.length > 3 && (
+                                            <span className="text-[10px] text-slate-400">
+                                              +{item.serials.length - 3} serial
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
                           </tbody>
                         </table>
                       </div>
 
-                      <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 font-normal">
-                        {historyList.length} kết quả
+                      <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 font-normal flex items-center justify-between">
+                        <span>{filteredLogs.length} dòng bản ghi</span>
+                        <span>
+                          Tổng nhập: +{totalQtyIn} | Tổng xuất: -{totalQtyOut}
+                        </span>
                       </div>
                     </div>
                   </div>

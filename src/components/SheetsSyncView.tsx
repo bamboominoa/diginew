@@ -7,6 +7,7 @@ import {
   downloadAllDatabaseCSV,
 } from '../services/googleSheets';
 import { db } from '../services/db';
+import { formatDateTime, getFormattedNow } from '../utils/dateUtils';
 import {
   Database,
   Cloud,
@@ -94,7 +95,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
       GiaTri: url,
       LoaiCauHinh: 'GoogleSheets',
       GhiChu: 'URL nhận và đồng bộ dữ liệu 2 chiều với Google Sheets',
-      ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
+      ThoiGianCapNhat: getFormattedNow(),
     });
 
     setSyncMessage('Đã lưu URL Google Webhook App và cập nhật vào Bảng Setting!');
@@ -134,15 +135,32 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
 
     setIsPulling(false);
     if (res.success && res.data) {
-      const { newCount, updatedCount } = db.mergeFromGoogleSheets(res.data);
-      if (newCount > 0 || updatedCount > 0) {
-        const detailParts = [];
-        if (newCount > 0) detailParts.push(`${newCount} dòng mới`);
-        if (updatedCount > 0) detailParts.push(`${updatedCount} dòng chỉnh sửa`);
-        setSyncMessage(`✅ Tự động cập nhật thành công ${detailParts.join(' & ')} từ Google Sheets về WebApp!`);
-      } else {
-        setSyncMessage('✅ Dữ liệu trên WebApp và Google Sheets đã đồng bộ khớp hoàn toàn (Không có dòng mới).');
-      }
+      db.replaceFromGoogleSheets(res.data);
+      setSyncMessage('✅ Đã nạp và đồng bộ chính xác dữ liệu từ Google Sheets về WebApp!');
+    } else {
+      setSyncMessage(`❌ Thất bại: ${res.message}`);
+    }
+  };
+
+  const handleTriggerReplaceFromSheets = async () => {
+    if (!webhookUrl.trim()) {
+      alert('Vui lòng nhập Webhook URL triển khai từ Google Apps Script!');
+      return;
+    }
+
+    if (!window.confirm('XÁC NHẬN: Bạn có chắc chắn muốn lấy toàn bộ dữ liệu trên Google Sheets làm DỮ LIỆU GỐC MASTER và ghi đè hoàn toàn lên WebApp?')) {
+      return;
+    }
+
+    setIsPulling(true);
+    setSyncMessage('Đang tải toàn bộ dữ liệu gốc từ Google Sheets và ghi đè dữ liệu WebApp...');
+
+    const res = await pullDataFromGoogleSheets(webhookUrl.trim());
+
+    setIsPulling(false);
+    if (res.success && res.data) {
+      db.replaceFromGoogleSheets(res.data);
+      setSyncMessage('✅ Đã nạp thành công TOÀN BỘ dữ liệu gốc từ Google Sheets về WebApp và chuẩn hóa mã!');
     } else {
       setSyncMessage(`❌ Thất bại: ${res.message}`);
     }
@@ -157,7 +175,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
     db.updateSetting({
       ...item,
       GiaTri: editValue,
-      ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
+      ThoiGianCapNhat: getFormattedNow(),
     });
     setEditingKey(null);
     setSyncMessage(`Đã cập nhật cấu hình [${item.MaCauHinh}] thành công!`);
@@ -184,7 +202,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
       GiaTri: newValue.trim(),
       LoaiCauHinh: newCategory,
       GhiChu: newNote.trim(),
-      ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
+      ThoiGianCapNhat: getFormattedNow(),
     });
 
     setNewKey('');
@@ -229,13 +247,30 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
           </p>
         </div>
 
-        <button
-          onClick={() => downloadAllDatabaseCSV(data)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 transition-colors cursor-pointer"
-        >
-          <Download className="w-4 h-4" />
-          <span>Tải Trọn Bộ File CSV (.ZIP/Multiple)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              if (window.confirm('Bạn có chắc chắn muốn khôi phục dữ liệu mẫu về định dạng chuẩn số thứ tự (DH00001, NH00001, SP00001, KH00001, NCC00001)?')) {
+                db.resetToDefaultDatabase();
+                setSyncMessage('✅ Đã khôi phục dữ liệu thành công về dạng chuẩn 5 chữ số (DH00001, NH00001, SP00001...)!');
+                setTimeout(() => setSyncMessage(null), 4000);
+              }
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
+            title="Khôi phục dữ liệu mẫu về dạng chuẩn 5 chữ số"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Khôi Phục Dữ Liệu Gốc Chuẩn (DH00001)</span>
+          </button>
+
+          <button
+            onClick={() => downloadAllDatabaseCSV(data)}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Tải Trọn Bộ File CSV (.ZIP/Multiple)</span>
+          </button>
+        </div>
       </div>
 
       {/* Sync Status Banner */}
@@ -255,19 +290,31 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
           <button
             onClick={handleTriggerPushNow}
             disabled={isSyncing || isPulling}
-            className="px-5 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+            className="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+            title="Tải toàn bộ 13 bảng từ WebApp đẩy lên Google Sheets"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Đang Đẩy Dữ Liệu...' : 'Đẩy Lên Sheets'}</span>
+            <span>{isSyncing ? 'Đang Đẩy...' : 'Đẩy Lên Sheets'}</span>
           </button>
 
           <button
             onClick={handleTriggerPullNow}
             disabled={isSyncing || isPulling}
-            className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+            title="Đồng bộ bổ sung các dòng mới/sửa từ Google Sheets về WebApp"
           >
             <Download className={`w-4 h-4 ${isPulling ? 'animate-bounce' : ''}`} />
-            <span>{isPulling ? 'Đang Tải Dữ Liệu...' : 'Kéo Từ Sheets Về Web'}</span>
+            <span>{isPulling ? 'Đang Tải...' : 'Nạp Cập Nhật Từ Sheets'}</span>
+          </button>
+
+          <button
+            onClick={handleTriggerReplaceFromSheets}
+            disabled={isSyncing || isPulling}
+            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 flex items-center gap-2 text-xs transition-all cursor-pointer"
+            title="Coi Google Sheets là Dữ Liệu Gốc Master và ghi đè hoàn toàn về WebApp"
+          >
+            <Zap className="w-4 h-4 text-amber-200" />
+            <span>Google Sheets Là Gốc (Ghi Đè)</span>
           </button>
         </div>
       </div>
@@ -353,7 +400,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
                       {st.GhiChu || '—'}
                     </td>
                     <td className="py-3 px-4 text-slate-400 text-[11px] whitespace-nowrap">
-                      {st.ThoiGianCapNhat || '—'}
+                      {st.ThoiGianCapNhat ? formatDateTime(st.ThoiGianCapNhat) : '—'}
                     </td>
                     <td className="py-3 px-4 text-center whitespace-nowrap">
                       {isEditing ? (

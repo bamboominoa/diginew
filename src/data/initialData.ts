@@ -86,7 +86,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 3. SanPham (Products & SKUs)
   SanPham: [
     {
-      MaSP: 'SP000',
+      MaSP: 'SP00001',
       TenSanPham: 'Camera wifi ezviz H6C pro 2K 3MP (New)',
       MaNhomHang: 'NH002',
       MaThuongHieu: 'TH003',
@@ -99,7 +99,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-08-01',
     },
     {
-      MaSP: 'SP001',
+      MaSP: 'SP00002',
       TenSanPham: 'Laptop Dell XPS 13 9315 i7-1250U 16GB 512GB SSD',
       MaNhomHang: 'NH001',
       MaThuongHieu: 'TH002',
@@ -112,7 +112,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-01-10',
     },
     {
-      MaSP: 'SP002',
+      MaSP: 'SP00003',
       TenSanPham: 'MacBook Air M2 2023 8GB 256GB SSD (Chính hãng)',
       MaNhomHang: 'NH001',
       MaThuongHieu: 'TH001',
@@ -125,7 +125,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-01-15',
     },
     {
-      MaSP: 'SP003',
+      MaSP: 'SP00004',
       TenSanPham: 'Camera IP Hikvision DS-2CD2143G2-I 4MP Dome',
       MaNhomHang: 'NH002',
       MaThuongHieu: 'TH003',
@@ -138,7 +138,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-02-01',
     },
     {
-      MaSP: 'SP004',
+      MaSP: 'SP00005',
       TenSanPham: 'iPhone 15 Pro Max 256GB Titanium Natural',
       MaNhomHang: 'NH003',
       MaThuongHieu: 'TH001',
@@ -151,7 +151,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-02-10',
     },
     {
-      MaSP: 'SP005',
+      MaSP: 'SP00006',
       TenSanPham: 'Màn hình Samsung Odyssey G5 27 inch 165Hz 1ms',
       MaNhomHang: 'NH004',
       MaThuongHieu: 'TH006',
@@ -164,7 +164,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-03-01',
     },
     {
-      MaSP: 'SP006',
+      MaSP: 'SP00007',
       TenSanPham: 'Router Wifi 6 TP-Link Archer AX55 Dual Band',
       MaNhomHang: 'NH005',
       MaThuongHieu: 'TH008',
@@ -177,7 +177,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-03-12',
     },
     {
-      MaSP: 'SP007',
+      MaSP: 'SP00008',
       TenSanPham: 'Cáp sạc Type-C to Lightning Apple 1m (Hộp xịn)',
       MaNhomHang: 'NH006',
       MaThuongHieu: 'TH001',
@@ -191,7 +191,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-03-15',
     },
     {
-      MaSP: 'SP008',
+      MaSP: 'SP00009',
       TenSanPham: 'Dịch vụ thi công lắp đặt Camera & Hệ thống mạng',
       MaNhomHang: 'NH002',
       MaThuongHieu: 'TH003',
@@ -211,8 +211,8 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     // Dell XPS Serials
     {
       SoSerial: 'DELL-XPS-883901',
-      MaSP: 'SP001',
-      MaPN: 'NH20260701-01',
+      MaSP: 'SP00002',
+      MaPN: 'NH00001',
       NCC: 'Công ty Synnex FPT',
       GiaNhap: 22500000,
       TrangThai: 'TrongKho',
@@ -223,8 +223,8 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'DELL-XPS-883902',
-      MaSP: 'SP001',
-      MaPN: 'NH20260701-01',
+      MaSP: 'SP00002',
+      MaPN: 'NH00001',
       NCC: 'Công ty Synnex FPT',
       GiaNhap: 22500000,
       TrangThai: 'TrongKho',
@@ -235,22 +235,22 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'DELL-XPS-883903',
-      MaSP: 'SP001',
-      MaPN: 'NH20260701-01',
+      MaSP: 'SP00002',
+      MaPN: 'NH00001',
       NCC: 'Công ty Synnex FPT',
       GiaNhap: 22500000,
       TrangThai: 'DaBan',
       NgayNhap: '2026-07-01',
-      MaDH: 'DH20260802-001',
-      MaKH: 'KH002',
+      MaDH: 'DH00002',
+      MaKH: 'KH00002',
       Ngayban: '2026-08-02',
     },
 
     // MacBook Serials
     {
       SoSerial: 'MBA-M2-990111',
-      MaSP: 'SP002',
-      MaPN: 'NH20260710-01',
+      MaSP: 'SP00003',
+      MaPN: 'NH00002',
       NCC: 'Công ty Viễn Thông A',
       GiaNhap: 21800000,
       TrangThai: 'TrongKho',
@@ -258,34 +258,34 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'MBA-M2-990112',
-      MaSP: 'SP002',
-      MaPN: 'NH20260710-01',
+      MaSP: 'SP00003',
+      MaPN: 'NH00002',
       NCC: 'Công ty Viễn Thông A',
       GiaNhap: 21800000,
       TrangThai: 'DaBan',
       NgayNhap: '2026-07-10',
-      MaDH: 'DH20260803-001',
-      MaKH: 'KH001',
+      MaDH: 'DH00003',
+      MaKH: 'KH00001',
       Ngayban: '2026-08-03',
     },
     {
       SoSerial: 'MBA-M2-990113',
-      MaSP: 'SP002',
-      MaPN: 'NH20260710-01',
+      MaSP: 'SP00003',
+      MaPN: 'NH00002',
       NCC: 'Công ty Viễn Thông A',
       GiaNhap: 21800000,
       TrangThai: 'BaoHanh', // Under warranty
       NgayNhap: '2026-07-10',
-      MaDH: 'DH20260715-001',
-      MaKH: 'KH003',
+      MaDH: 'DH00005',
+      MaKH: 'KH00003',
       Ngayban: '2026-07-15',
     },
 
     // Hikvision Camera Serials
     {
       SoSerial: 'HIK-CAM-771001',
-      MaSP: 'SP003',
-      MaPN: 'NH20260715-01',
+      MaSP: 'SP00004',
+      MaPN: 'NH00003',
       NCC: 'Nhà Phân Phối Lê Hoàng',
       GiaNhap: 1150000,
       TrangThai: 'TrongKho',
@@ -293,8 +293,8 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'HIK-CAM-771002',
-      MaSP: 'SP003',
-      MaPN: 'NH20260715-01',
+      MaSP: 'SP00004',
+      MaPN: 'NH00003',
       NCC: 'Nhà Phân Phối Lê Hoàng',
       GiaNhap: 1150000,
       TrangThai: 'TrongKho',
@@ -302,22 +302,22 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'HIK-CAM-771003',
-      MaSP: 'SP003',
-      MaPN: 'NH20260715-01',
+      MaSP: 'SP00004',
+      MaPN: 'NH00003',
       NCC: 'Nhà Phân Phối Lê Hoàng',
       GiaNhap: 1150000,
       TrangThai: 'DaBan',
       NgayNhap: '2026-07-15',
-      MaDH: 'DH20260801-001',
-      MaKH: 'KH003',
+      MaDH: 'DH00001',
+      MaKH: 'KH00003',
       Ngayban: '2026-08-01',
     },
 
     // iPhone 15 Pro Max Serials / IMEIs
     {
       SoSerial: 'IMEI-35899201928301',
-      MaSP: 'SP004',
-      MaPN: 'NH20260720-01',
+      MaSP: 'SP00005',
+      MaPN: 'NH00004',
       NCC: 'Công ty Synnex FPT',
       GiaNhap: 27200000,
       TrangThai: 'TrongKho',
@@ -325,22 +325,22 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'IMEI-35899201928302',
-      MaSP: 'SP004',
-      MaPN: 'NH20260720-01',
+      MaSP: 'SP00005',
+      MaPN: 'NH00004',
       NCC: 'Công ty Synnex FPT',
       GiaNhap: 27200000,
       TrangThai: 'DaBan',
       NgayNhap: '2026-07-20',
-      MaDH: 'DH20260804-001',
-      MaKH: 'KH001',
+      MaDH: 'DH00004',
+      MaKH: 'KH00001',
       Ngayban: '2026-08-04',
     },
 
     // Samsung Monitor
     {
       SoSerial: 'SAM-MON-554101',
-      MaSP: 'SP005',
-      MaPN: 'NH20260720-02',
+      MaSP: 'SP00006',
+      MaPN: 'NH00005',
       NCC: 'Công ty Viễn Thông A',
       GiaNhap: 4800000,
       TrangThai: 'TrongKho',
@@ -348,8 +348,8 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     },
     {
       SoSerial: 'SAM-MON-554102',
-      MaSP: 'SP005',
-      MaPN: 'NH20260720-02',
+      MaSP: 'SP00006',
+      MaPN: 'NH00005',
       NCC: 'Công ty Viễn Thông A',
       GiaNhap: 4800000,
       TrangThai: 'LoiThanhLy', // Damaged/Liquidation
@@ -359,8 +359,8 @@ export const INITIAL_DATABASE: DatabaseSchema = {
     // Router TP-Link
     {
       SoSerial: 'TPL-ROUTER-112001',
-      MaSP: 'SP006',
-      MaPN: 'NH20260725-01',
+      MaSP: 'SP00007',
+      MaPN: 'NH00006',
       NCC: 'Nhà Phân Phối Lê Hoàng',
       GiaNhap: 1250000,
       TrangThai: 'TrongKho',
@@ -371,55 +371,55 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 5. StockCards (Thẻ kho)
   StockCards: [
     {
-      MaTheKho: 'TK001',
+      MaTheKho: 'TK00001',
       NgayGio: '2026-07-01 09:30:00',
-      MaSP: 'SP001',
+      MaSP: 'SP00002',
       LoaiGiaoDich: 'NhapKho',
-      MaChungTu: 'NH20260701-01',
+      MaChungTu: 'NH00001',
       SoLuongThayDoi: 3,
       SoLuongTonSauGiaoDich: 3,
       SoSerial: ['DELL-XPS-883901', 'DELL-XPS-883902', 'DELL-XPS-883903'],
       NhanVienThucHien: 'Trần Văn Kho',
     },
     {
-      MaTheKho: 'TK002',
+      MaTheKho: 'TK00002',
       NgayGio: '2026-07-10 10:15:00',
-      MaSP: 'SP002',
+      MaSP: 'SP00003',
       LoaiGiaoDich: 'NhapKho',
-      MaChungTu: 'NH20260710-01',
+      MaChungTu: 'NH00002',
       SoLuongThayDoi: 3,
       SoLuongTonSauGiaoDich: 3,
       SoSerial: ['MBA-M2-990111', 'MBA-M2-990112', 'MBA-M2-990113'],
       NhanVienThucHien: 'Trần Văn Kho',
     },
     {
-      MaTheKho: 'TK003',
+      MaTheKho: 'TK00003',
       NgayGio: '2026-08-01 14:20:00',
-      MaSP: 'SP003',
+      MaSP: 'SP00004',
       LoaiGiaoDich: 'XuatBan',
-      MaChungTu: 'DH20260801-001',
+      MaChungTu: 'DH00001',
       SoLuongThayDoi: -1,
       SoLuongTonSauGiaoDich: 2,
       SoSerial: ['HIK-CAM-771003'],
       NhanVienThucHien: 'Lê Văn Cường',
     },
     {
-      MaTheKho: 'TK004',
+      MaTheKho: 'TK00004',
       NgayGio: '2026-08-02 16:45:00',
-      MaSP: 'SP001',
+      MaSP: 'SP00002',
       LoaiGiaoDich: 'XuatBan',
-      MaChungTu: 'DH20260802-001',
+      MaChungTu: 'DH00002',
       SoLuongThayDoi: -1,
       SoLuongTonSauGiaoDich: 2,
       SoSerial: ['DELL-XPS-883903'],
       NhanVienThucHien: 'Lê Văn Cường',
     },
     {
-      MaTheKho: 'TK005',
+      MaTheKho: 'TK00005',
       NgayGio: '2026-08-03 11:00:00',
-      MaSP: 'SP002',
+      MaSP: 'SP00003',
       LoaiGiaoDich: 'XuatBan',
-      MaChungTu: 'DH20260803-001',
+      MaChungTu: 'DH00003',
       SoLuongThayDoi: -1,
       SoLuongTonSauGiaoDich: 2,
       SoSerial: ['MBA-M2-990112'],
@@ -430,7 +430,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 6. KhachHang (Customers & CRM)
   KhachHang: [
     {
-      MaKH: 'KH001',
+      MaKH: 'KH00001',
       TenKhachHang: 'Nguyễn Văn An',
       SDT1: '0905123456',
       SDT2: '0988765432',
@@ -445,7 +445,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       UrlHinhAnh: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     },
     {
-      MaKH: 'KH002',
+      MaKH: 'KH00002',
       TenKhachHang: 'Công ty TNHH Giải Pháp Kiến Trúc Mới',
       SDT1: '02838112233',
       SDT2: '0912345678',
@@ -460,7 +460,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       UrlHinhAnh: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150',
     },
     {
-      MaKH: 'KH003',
+      MaKH: 'KH00003',
       TenKhachHang: 'Trần Thị Thu Hà',
       SDT1: '0935888999',
       DiaChi: '78 Hoàng Diệu, Quận Hai Bà Trưng',
@@ -474,7 +474,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       UrlHinhAnh: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
     },
     {
-      MaKH: 'KH004',
+      MaKH: 'KH00004',
       TenKhachHang: 'Đại Lý Công Nghệ Sông Hàn',
       SDT1: '02363777888',
       DiaChi: '12 Nguyễn Văn Linh, Quận Hải Châu',
@@ -492,7 +492,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 7. NCC (Suppliers)
   NCC: [
     {
-      MaNCC: 'NCC000',
+      MaNCC: 'NCC00001',
       TenNhaCungCap: 'Phát Đạt Computer',
       SDT: '0987654321',
       DiaChi: '123 Lý Thường Kiệt, Q. 10, TP.HCM',
@@ -501,7 +501,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-08-01',
     },
     {
-      MaNCC: 'NCC001',
+      MaNCC: 'NCC00002',
       TenNhaCungCap: 'Công ty Synnex FPT',
       SDT: '02839301234',
       DiaChi: 'Tầng 5, Tòa nhà FPT, Q. Cầu Giấy, Hà Nội',
@@ -510,7 +510,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-01-01',
     },
     {
-      MaNCC: 'NCC002',
+      MaNCC: 'NCC00003',
       TenNhaCungCap: 'Công ty Viễn Thông A',
       SDT: '02838229988',
       DiaChi: '228 Nam Kỳ Khởi Nghĩa, Q.3, TP.HCM',
@@ -519,7 +519,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-01-05',
     },
     {
-      MaNCC: 'NCC003',
+      MaNCC: 'NCC00004',
       TenNhaCungCap: 'Nhà Phân Phối Lê Hoàng (Camera)',
       SDT: '02839105566',
       DiaChi: '50 Pasteur, Q.1, TP.HCM',
@@ -532,9 +532,9 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 8. DonHang (Sales Invoices)
   DonHang: [
     {
-      MaDH: 'DH20260801-001',
+      MaDH: 'DH00001',
       NgayBan: '2026-08-01 14:20',
-      MaKH: 'KH003',
+      MaKH: 'KH00003',
       TongTienHang: 1650000,
       GiamGia: 0,
       KhachPhaiTra: 1650000,
@@ -547,9 +547,9 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       GhiChu: 'Khách thanh toán tiền mặt tại quầy',
     },
     {
-      MaDH: 'DH20260802-001',
+      MaDH: 'DH00002',
       NgayBan: '2026-08-02 16:45',
-      MaKH: 'KH002',
+      MaKH: 'KH00002',
       TongTienHang: 26900000,
       GiamGia: 0,
       KhachPhaiTra: 26900000,
@@ -562,9 +562,9 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       GhiChu: 'Còn nợ 6.9tr hẹn thanh toán tuần sau',
     },
     {
-      MaDH: 'DH20260803-001',
+      MaDH: 'DH00003',
       NgayBan: '2026-08-03 11:00',
-      MaKH: 'KH001',
+      MaKH: 'KH00001',
       TongTienHang: 24990000,
       GiamGia: 500000,
       KhachPhaiTra: 24490000,
@@ -577,9 +577,9 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       GhiChu: 'Giảm giá VIP 500k cho MacBook Air',
     },
     {
-      MaDH: 'DH20260804-001',
+      MaDH: 'DH00004',
       NgayBan: '2026-08-04 09:15',
-      MaKH: 'KH001',
+      MaKH: 'KH00001',
       TongTienHang: 29990000,
       GiamGia: 0,
       KhachPhaiTra: 29990000,
@@ -596,36 +596,36 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 9. ChiTietDonHang (Sales Invoice Details)
   ChiTietDonHang: [
     {
-      MaChiTietDH: 'CTDH001',
-      MaDH: 'DH20260801-001',
-      MaSP: 'SP003',
+      MaChiTietDH: 'CTDH00001',
+      MaDH: 'DH00001',
+      MaSP: 'SP00004',
       SoLuong: 1,
       SoSerial: ['HIK-CAM-771003'],
       GiaBan: 1650000,
       ThanhTien: 1650000,
     },
     {
-      MaChiTietDH: 'CTDH002',
-      MaDH: 'DH20260802-001',
-      MaSP: 'SP001',
+      MaChiTietDH: 'CTDH00002',
+      MaDH: 'DH00002',
+      MaSP: 'SP00002',
       SoLuong: 1,
       SoSerial: ['DELL-XPS-883903'],
       GiaBan: 26900000,
       ThanhTien: 26900000,
     },
     {
-      MaChiTietDH: 'CTDH003',
-      MaDH: 'DH20260803-001',
-      MaSP: 'SP002',
+      MaChiTietDH: 'CTDH00003',
+      MaDH: 'DH00003',
+      MaSP: 'SP00003',
       SoLuong: 1,
       SoSerial: ['MBA-M2-990112'],
       GiaBan: 24990000,
       ThanhTien: 24990000,
     },
     {
-      MaChiTietDH: 'CTDH004',
-      MaDH: 'DH20260804-001',
-      MaSP: 'SP004',
+      MaChiTietDH: 'CTDH00004',
+      MaDH: 'DH00004',
+      MaSP: 'SP00005',
       SoLuong: 1,
       SoSerial: ['IMEI-35899201928302'],
       GiaBan: 29990000,
@@ -636,9 +636,9 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 10. NhapHang (Purchase Receipts)
   NhapHang: [
     {
-      MaNH: 'NH20260701-01',
+      MaNH: 'NH00001',
       NgayNhap: '2026-07-01 09:30',
-      MaNCC: 'NCC001',
+      MaNCC: 'NCC00002',
       TongTienHang: 67500000,
       GiamGiaNCC: 0,
       TongPhaiTra: 67500000,
@@ -651,9 +651,9 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       GhiChu: 'Nhập lô Dell XPS 13 (3 máy)',
     },
     {
-      MaNH: 'NH20260710-01',
+      MaNH: 'NH00002',
       NgayNhap: '2026-07-10 10:15',
-      MaNCC: 'NCC002',
+      MaNCC: 'NCC00003',
       TongTienHang: 65400000,
       GiamGiaNCC: 400000,
       TongPhaiTra: 65000000,
@@ -670,18 +670,18 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 11. ChiTietNhapHang (Purchase Receipt Details)
   ChiTietNhapHang: [
     {
-      MaChiTietNH: 'CTNH001',
-      MaNH: 'NH20260701-01',
-      MaSP: 'SP001',
+      MaChiTietNH: 'CTNH00001',
+      MaNH: 'NH00001',
+      MaSP: 'SP00002',
       SoLuong: 3,
       GiaNhap: 22500000,
       SoSerialNhap: ['DELL-XPS-883901', 'DELL-XPS-883902', 'DELL-XPS-883903'],
       ThanhTien: 67500000,
     },
     {
-      MaChiTietNH: 'CTNH002',
-      MaNH: 'NH20260710-01',
-      MaSP: 'SP002',
+      MaChiTietNH: 'CTNH00002',
+      MaNH: 'NH00002',
+      MaSP: 'SP00003',
       SoLuong: 3,
       GiaNhap: 21800000,
       SoSerialNhap: ['MBA-M2-990111', 'MBA-M2-990112', 'MBA-M2-990113'],
@@ -692,7 +692,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
   // 12. NguoiDung (Users)
   NguoiDung: [
     {
-      MaUID: 'UID001',
+      MaUID: 'UID00001',
       TenNguoiDung: 'Lê Văn Cường (Admin)',
       MatKhau: '123456',
       VaiTro: 'Admin',
@@ -700,7 +700,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-01-01',
     },
     {
-      MaUID: 'UID002',
+      MaUID: 'UID00002',
       TenNguoiDung: 'Nguyễn Thị Bích (Bán hàng)',
       MatKhau: '123456',
       VaiTro: 'BanHang',
@@ -708,7 +708,7 @@ export const INITIAL_DATABASE: DatabaseSchema = {
       NgayTao: '2026-02-01',
     },
     {
-      MaUID: 'UID003',
+      MaUID: 'UID00003',
       TenNguoiDung: 'Trần Văn Kho (Thủ Kho)',
       MatKhau: '123456',
       VaiTro: 'Kho',

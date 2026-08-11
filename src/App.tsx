@@ -49,8 +49,8 @@ export default function App() {
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
   useEffect(() => {
-    // Start background auto-pull from Google Sheets (and immediate load on page refresh)
-    startAutoPullTimer(15000);
+    // Check domain configuration once on startup without running aggressive polling loops
+    startAutoPullTimer();
 
     const handleSynced = (e: Event) => {
       const customEv = e as CustomEvent;

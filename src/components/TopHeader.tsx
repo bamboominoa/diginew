@@ -161,9 +161,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1">
               Chuyển Tài Khoản
             </div>
-            {(allUsers || []).map((usr) => (
+            {(allUsers || []).map((usr, idx) => (
               <button
-                key={usr.MaUID}
+                key={`${usr.MaUID}-${idx}`}
                 onClick={() => setActiveUser && setActiveUser(usr)}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                   usr.MaUID === activeUser.MaUID

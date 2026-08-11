@@ -67,7 +67,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ data, setCurrentTa
 
   // Revenue by Sales Order
   const revenueBarData = data.DonHang.slice(0, 7).map((dh) => ({
-    name: dh.MaDH.replace('DH2026', ''),
+    name: dh.MaDH,
     DoanhThu: dh.KhachPhaiTra,
     ThanhToan: dh.KhachThanhToan,
   }));

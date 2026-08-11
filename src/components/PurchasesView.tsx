@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DatabaseSchema, NhapHang, ChiTietNhapHang } from '../types';
 import { formatDateTime, sortByDateDescending, getFormattedNow } from '../utils/dateUtils';
+import { generateNextId } from '../utils/idUtils';
 import { db } from '../services/db';
 import {
   ArrowLeft,
@@ -130,12 +131,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
           if (typeof parsed.daThanhToan === 'number') setDaThanhToan(parsed.daThanhToan);
           if (parsed.ghiChuReceipt !== undefined) setGhiChuReceipt(parsed.ghiChuReceipt);
 
-          const dateObj = parsed.savedAt ? new Date(parsed.savedAt) : new Date();
-          const timeStr =
-            dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
-            ' ' +
-            dateObj.toLocaleDateString('vi-VN');
-          setDraftRestoredTime(timeStr);
+          setDraftRestoredTime(formatDateTime(parsed.savedAt || new Date()));
           setViewMode('create');
         }
       }
@@ -178,7 +174,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
         selectedBank,
         daThanhToan,
         ghiChuReceipt,
-        savedAt: new Date().toISOString(),
+        savedAt: getFormattedNow(),
       };
       localStorage.setItem('purchases_import_draft', JSON.stringify(draftPayload));
     } else {
@@ -319,7 +315,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
   const handleQuickCreateProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName.trim()) return;
-    const newMaSP = 'SP' + (data.SanPham.length + 1).toString().padStart(3, '0');
+    const newMaSP = generateNextId('SP', data.SanPham, 'MaSP', 5);
     const newSp = {
       MaSP: newMaSP,
       TenSanPham: newProductName,
@@ -331,7 +327,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
       QuanlySerial: true,
       TrangThaiKinhDoanh: 'DangKinhDoanh' as const,
       UrlHinhAnh: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500',
-      NgayTao: new Date().toISOString().substring(0, 10),
+      NgayTao: getFormattedNow(),
     };
     db.addSanPham(newSp);
     handleAddProductToCart(newSp);
@@ -355,12 +351,8 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
     const ncc = data.NCC.find((c) => c.MaNCC === supplierId);
     const oldDebt = ncc ? ncc.TongNoNCC : 0;
     const newDebt = oldDebt + conNoNCC;
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    const newMaNH =
-      'NH' +
-      new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14) +
-      '-' +
-      Math.floor(100 + Math.random() * 900);
+    const nowStr = getFormattedNow();
+    const newMaNH = generateNextId('NH', data.NhapHang, 'MaNH', 5);
 
     const newNH: NhapHang = {
       MaNH: newMaNH,
@@ -378,15 +370,20 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
       GhiChu: ghiChuReceipt || (status === 'Phiếu tạm' ? 'Phiếu tạm lưu giữ' : ''),
     };
 
-    const details: ChiTietNhapHang[] = importCart.map((item, idx) => ({
-      MaChiTietNH: 'CTNH' + newMaNH.slice(-8) + idx,
-      MaNH: newMaNH,
-      MaSP: item.maSP,
-      SoLuong: item.soLuong,
-      GiaNhap: item.donGiaNhap,
-      SoSerialNhap: item.serials,
-      ThanhTien: item.soLuong * item.donGiaNhap - item.giamGia,
-    }));
+    let currentCtnhList = [...data.ChiTietNhapHang];
+    const details: ChiTietNhapHang[] = importCart.map((item) => {
+      const maCtnh = generateNextId('CTNH', currentCtnhList, 'MaChiTietNH', 5);
+      currentCtnhList.push({ MaChiTietNH: maCtnh } as any);
+      return {
+        MaChiTietNH: maCtnh,
+        MaNH: newMaNH,
+        MaSP: item.maSP,
+        SoLuong: item.soLuong,
+        GiaNhap: item.donGiaNhap,
+        SoSerialNhap: item.serials,
+        ThanhTien: item.soLuong * item.donGiaNhap - item.giamGia,
+      };
+    });
 
     db.createPurchaseReceipt(newNH, details);
 
@@ -555,9 +552,9 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
                         onClick={() => setShowSearchDropdown(false)}
                       />
                       <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-                        {searchResults.map((sp) => (
+                        {searchResults.map((sp, idx) => (
                           <div
-                            key={sp.MaSP}
+                            key={`${sp.MaSP}-${idx}`}
                             onClick={() => {
                               handleAddProductToCart(sp);
                               setSearchTerm('');
@@ -1141,7 +1138,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({ data, activeUserNa
                 <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
                   Chi Tiết Phiếu Nhập: {selectedReceipt.receipt.MaNH}
                 </h3>
-                <p className="text-xs text-slate-500">{selectedReceipt.receipt.NgayNhap}</p>
+                <p className="text-xs text-slate-500">{formatDateTime(selectedReceipt.receipt.NgayNhap)}</p>
               </div>
               <button
                 onClick={() => setSelectedReceipt(null)}
