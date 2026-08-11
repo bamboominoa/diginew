@@ -554,9 +554,9 @@ export const PosView: React.FC<PosViewProps> = ({ data, activeUserName, onSaleCo
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row bg-slate-100 dark:bg-slate-950 overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row bg-slate-100 dark:bg-slate-950 overflow-y-auto lg:overflow-hidden">
       {/* CENTER / MAIN: POS Sales Order Workstation (Order Item Table) */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col p-2 sm:p-4 overflow-x-hidden lg:overflow-hidden min-w-0">
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
           

@@ -677,22 +677,27 @@ export function startAutoPullTimer(intervalMs = 15000): void {
 
   const doPull = async () => {
     const dbData = db.getFullDatabase();
-    let webhookUrl = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
     const settingObj = dbData.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
     const settingUrl = settingObj?.GiaTri ? String(settingObj.GiaTri).trim() : '';
 
-    if ((!webhookUrl || webhookUrl.includes('...')) && settingUrl && settingUrl.startsWith('http') && !settingUrl.includes('...')) {
+    let webhookUrl = '';
+
+    if (settingUrl && settingUrl.startsWith('http') && !settingUrl.includes('...')) {
       webhookUrl = settingUrl;
       localStorage.setItem('GOOGLE_SHEETS_WEBHOOK_URL', webhookUrl);
-    } else if (webhookUrl && webhookUrl.startsWith('http') && !webhookUrl.includes('...') && (!settingUrl || settingUrl.includes('...') || settingUrl !== webhookUrl)) {
-      db.updateSetting({
-        MaCauHinh: 'WEBHOOK_URL',
-        TenCauHinh: 'Google Apps Script Webhook URL',
-        GiaTri: webhookUrl,
-        LoaiCauHinh: 'GoogleSheets',
-        GhiChu: 'URL nhận và đồng bộ dữ liệu 2 chiều với Google Sheets',
-        ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
-      });
+    } else {
+      const localUrl = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
+      if (localUrl && localUrl.startsWith('http') && !localUrl.includes('...')) {
+        webhookUrl = localUrl;
+        db.updateSetting({
+          MaCauHinh: 'WEBHOOK_URL',
+          TenCauHinh: 'Google Apps Script Webhook URL',
+          GiaTri: webhookUrl,
+          LoaiCauHinh: 'GoogleSheets',
+          GhiChu: 'URL nhận và đồng bộ dữ liệu 2 chiều với Google Sheets',
+          ThoiGianCapNhat: new Date().toLocaleString('vi-VN'),
+        });
+      }
     }
 
     if (!webhookUrl || !webhookUrl.startsWith('http') || webhookUrl.includes('...')) {

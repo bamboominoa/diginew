@@ -21,6 +21,7 @@ import { AiAssistantModal } from './components/AiAssistantModal';
 export default function App() {
   const [data, setData] = useState<DatabaseSchema>(db.getFullDatabase());
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [activeUser, setActiveUser] = useState<NguoiDung>(
     data.NguoiDung[0] || {
       MaUID: 'ND001',
@@ -165,7 +166,12 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen bg-[#F8FAFC] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
@@ -179,6 +185,7 @@ export default function App() {
           onSearchSubmit={handleGlobalSearchSubmit}
           onOpenAiAssistant={() => setShowAiModal(true)}
           onRefreshSheets={handleRefreshSheets}
+          onToggleMobileSidebar={() => setMobileSidebarOpen((prev) => !prev)}
         />
 
         {/* Dynamic Main View */}

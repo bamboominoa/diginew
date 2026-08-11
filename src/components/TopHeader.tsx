@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   QrCode,
   RotateCcw,
+  Menu,
 } from 'lucide-react';
 
 interface TopHeaderProps {
@@ -23,6 +24,7 @@ interface TopHeaderProps {
   onSearchSubmit?: (query: string) => void;
   onRefreshSheets?: () => void;
   onResetData?: () => void;
+  onToggleMobileSidebar?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -37,6 +39,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onSearchSubmit,
   onRefreshSheets,
   onResetData,
+  onToggleMobileSidebar,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -50,43 +53,57 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-20 shadow-xs">
-      {/* Global Quick Search */}
-      <form onSubmit={handleSearchSubmit} className="relative w-80 max-w-full">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      <div className="flex items-center gap-2 sm:gap-4 flex-1 mr-2 sm:mr-4">
+        {/* Mobile Hamburger Toggle */}
+        {onToggleMobileSidebar && (
+          <button
+            onClick={onToggleMobileSidebar}
+            className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            title="Mở menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Global Quick Search */}
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-xs sm:w-80">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Tra cứu nhanh Serial / IMEI / Tên SP..."
           className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all"
         />
       </form>
 
+      </div>
+
       {/* Quick Action Center */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar shrink-0">
         <button
           onClick={() => setCurrentTab && setCurrentTab('pos')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0"
         >
           <ShoppingCart className="w-3.5 h-3.5" />
-          <span>+ Bán Hàng Mới</span>
+          <span className="hidden xs:inline sm:inline">+ Bán Hàng</span>
         </button>
 
         <button
           onClick={() => setCurrentTab && setCurrentTab('purchases')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800/60 transition-colors"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800/60 transition-colors shrink-0"
         >
           <Truck className="w-3.5 h-3.5" />
-          <span>+ Nhập Kho</span>
+          <span className="hidden sm:inline">+ Nhập Kho</span>
         </button>
 
         <button
           onClick={() => setCurrentTab && setCurrentTab('serials')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60 rounded-lg text-xs font-semibold border border-emerald-200 dark:border-emerald-800/60 transition-colors"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/60 rounded-lg text-xs font-semibold border border-emerald-200 dark:border-emerald-800/60 transition-colors shrink-0"
         >
           <QrCode className="w-3.5 h-3.5" />
-          <span>Tra Serial/IMEI</span>
+          <span>Serial/IMEI</span>
         </button>
 
         <button
@@ -94,13 +111,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             if (onOpenAiModal) onOpenAiModal();
             else if (onOpenAiAssistant) onOpenAiAssistant();
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all shrink-0"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Trợ Lý AI</span>
+          <span className="hidden sm:inline">Trợ Lý AI</span>
         </button>
 
-        <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+        <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5 sm:mx-1 shrink-0" />
 
         {/* Google Sheets status shortcut */}
         <button

@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   UserCheck,
   Zap,
+  X,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,6 +23,8 @@ interface SidebarProps {
   setActiveTab?: (tab: any) => void;
   totalSerialsInStock?: number;
   totalCustomerDebt?: number;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -31,12 +34,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   totalSerialsInStock,
   totalCustomerDebt,
+  mobileOpen = false,
+  onCloseMobile,
 }) => {
   const selectedTab = activeTab || currentTab || 'dashboard';
 
   const handleTabChange = (tab: string) => {
     if (setActiveTab) setActiveTab(tab);
     if (setCurrentTab) setCurrentTab(tab);
+    if (onCloseMobile) onCloseMobile();
   };
 
   const menuItems = [
@@ -70,19 +76,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'users', label: 'Người Dùng & Quyền', icon: UserCheck },
   ];
 
-  return (
-    <aside className="w-64 bg-slate-900 text-slate-200 border-r border-slate-800 flex flex-col h-screen sticky top-0 shrink-0 select-none">
+  const sidebarContent = (
+    <div className="w-64 bg-slate-900 text-slate-200 border-r border-slate-800 flex flex-col h-full shrink-0 select-none">
       {/* App Branding */}
-      <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-bold text-xl">
-          <Zap className="w-6 h-6" />
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-bold text-xl">
+            <Zap className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="font-bold text-slate-100 text-base leading-tight tracking-tight">
+              POS & Serial Pro
+            </h1>
+            <p className="text-xs text-slate-400">Quản Lý Kho & Bán Hàng</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-slate-100 text-base leading-tight tracking-tight">
-            POS & Serial Pro
-          </h1>
-          <p className="text-xs text-slate-400">Quản Lý Kho & Bán Hàng</p>
-        </div>
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation List */}
@@ -147,10 +163,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <div className="flex-1 text-left truncate">
             <span className="font-medium text-slate-200 block">Dữ Liệu Google Sheet</span>
-            <span className="text-[10px] text-slate-400">12 Bảng Chuẩn Khóa PK/FK</span>
+            <span className="text-[10px] text-slate-400">Tự động đồng bộ</span>
           </div>
         </button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden lg:flex w-64 h-screen sticky top-0 shrink-0">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+            onClick={onCloseMobile}
+          />
+          <div className="relative z-10 flex-1 max-w-xs w-full h-full animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

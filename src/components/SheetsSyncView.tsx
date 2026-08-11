@@ -32,17 +32,17 @@ interface SheetsSyncViewProps {
 
 export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
   const getInitialWebhookUrl = (): string => {
-    const local = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
-    if (local && local.startsWith('http') && !local.includes('...')) {
-      return local;
-    }
     const settingObj = data.Setting?.find((s) => s.MaCauHinh === 'WEBHOOK_URL');
     if (settingObj && settingObj.GiaTri && String(settingObj.GiaTri).startsWith('http') && !String(settingObj.GiaTri).includes('...')) {
       const url = String(settingObj.GiaTri).trim();
       localStorage.setItem('GOOGLE_SHEETS_WEBHOOK_URL', url);
       return url;
     }
-    return local;
+    const local = (localStorage.getItem('GOOGLE_SHEETS_WEBHOOK_URL') || '').trim();
+    if (local && local.startsWith('http') && !local.includes('...')) {
+      return local;
+    }
+    return settingObj ? String(settingObj.GiaTri || '') : '';
   };
 
   const [webhookUrl, setWebhookUrl] = useState<string>(getInitialWebhookUrl);
@@ -214,7 +214,7 @@ export const SheetsSyncView: React.FC<SheetsSyncViewProps> = ({ data }) => {
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
